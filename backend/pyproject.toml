@@ -1,0 +1,20 @@
+[project]
+name = "pharma-z"
+version = "1.0.0"
+description = "Privacy-Preserving, Blockchain-Enabled AI Drug Discovery & Forensic Audit Platform"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.pyright]
+root = "."
+pythonPath = "."
+venvPath = "."
+include = ["app", "tests"]
+extraPaths = ["."]
+
+[tool.pyre]
+source_directories = ["."]
+search_path = ["."]

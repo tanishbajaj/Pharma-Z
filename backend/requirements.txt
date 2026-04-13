@@ -1,0 +1,51 @@
+# ===========================
+# Pharma-Z — Dependencies
+# ===========================
+
+# --- Core API ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.0
+pydantic-settings>=2.0
+python-dotenv>=1.0.0
+
+# --- Database ---
+sqlalchemy>=2.0
+aiosqlite>=0.19.0
+
+# --- ML Core ---
+torch>=2.0
+numpy>=1.24,<2
+pandas>=2.0
+scikit-learn>=1.3
+joblib>=1.3
+
+# --- Chemistry ---
+rdkit-pypi>=2023.9.1
+
+# --- Graph Neural Networks ---
+torch-geometric>=2.4
+
+# --- Privacy (Differential Privacy) ---
+opacus>=1.4
+
+# --- Blockchain ---
+web3>=6.0
+
+# --- Explainability ---
+shap>=0.44
+
+# --- Experiment Tracking ---
+mlflow>=2.10
+
+# --- Testing ---
+pytest>=7.0
+httpx>=0.26.0
+
+# ===========================
+# NOTE: For GPU training, install PyTorch with CUDA separately:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+#
+# torch-geometric may also need manual install:
+#   pip install torch-geometric -f https://data.pyg.org/whl/torch-2.5.0+cu124.html
+# ===========================
