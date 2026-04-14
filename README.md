@@ -10,16 +10,16 @@ Pharma-Z is a research project that integrates AI-based molecular generation, dr
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Pharma-Z Pipeline                          │
+│                     Pharma-Z Pipeline                           │
 │                                                                 │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌────────────┐  │
+│  ┌──────────┐   ┌──────────┐    ┌──────────┐    ┌────────────┐  │
 │  │ Molecule │──▶│ Binding  │──▶│ Toxicity │──▶│  Ranking   │  │
-│  │Generator │   │Predictor │   │Predictor │   │  & Audit   │  │
-│  │(VAE/GNN) │   │(DeepDTA) │   │  (RF)    │   │(Blockchain)│  │
-│  └──────────┘   └──────────┘   └──────────┘   └────────────┘  │
-│       ▲                                              │         │
-│       │         ┌──────────────────────┐             ▼         │
-│       └─────────│  ZINC Dataset (22M)  │    Ranked Drug        │
+│  │Generator │   │Predictor │    │Predictor │    │  & Audit   │  │
+│  │(VAE/GNN) │   │(DeepDTA) │    │  (RF)    │    │(Blockchain)│  │
+│  └──────────┘   └──────────┘    └──────────┘    └────────────┘  │
+│       ▲                                              │          │
+│       │         ┌──────────────────────┐             ▼          │
+│       └─────────│  ZINC Dataset (22M)  │    Ranked Drug         │
 │                 └──────────────────────┘    Candidates          │
 └─────────────────────────────────────────────────────────────────┘
 ```
