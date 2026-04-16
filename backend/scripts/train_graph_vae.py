@@ -147,6 +147,16 @@ def main():
         help="Save checkpoint every N epochs"
     )
 
+    # Resume from checkpoint
+    parser.add_argument(
+        "--resume", type=str, default=None,
+        help="Path to checkpoint .pt file to resume training from"
+    )
+    parser.add_argument(
+        "--start-epoch", type=int, default=0,
+        help="Epoch number already completed (for correct β schedule offset)"
+    )
+
     # Evaluation
     parser.add_argument(
         "--eval-samples", type=int, default=100,
@@ -242,6 +252,16 @@ def main():
         hidden_dim=args.hidden_dim,
     )
 
+    # Load checkpoint if resuming
+    if args.resume:
+        if not os.path.exists(args.resume):
+            print(f"  ✗ Checkpoint not found: {args.resume}")
+            sys.exit(1)
+        ckpt = torch.load(args.resume, map_location="cpu")
+        state = ckpt.get("model_state_dict", ckpt)
+        model.load_state_dict(state)
+        print(f"  ✓ Resumed from: {args.resume} (epoch {args.start_epoch} done)")
+
     # Print parameter count
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -261,6 +281,7 @@ def main():
         beta_max=args.beta_max,
         num_cycles=args.num_cycles,
         annealing_ratio=args.annealing_ratio,
+        start_epoch=args.start_epoch,
     )
     train_time = time.time() - t_train
 

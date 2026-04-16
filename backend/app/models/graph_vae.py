@@ -521,15 +521,30 @@ class GraphVAE(nn.Module):
             device = next(self.parameters()).device
 
         self.eval()
-        with torch.no_grad():
-            z = torch.randn(num_molecules, self.latent_dim, device=device)
-            z = z * temperature
-            adj_logits, node_pred, bond_pred = self.decoder(z)
 
-            # Apply sigmoid + node existence for generation
-            adj_pred = torch.sigmoid(adj_logits)
-            node_existence = adj_pred.max(dim=2).values
-            adj_pred = adj_pred + torch.diag_embed(node_existence)
+        # BATCHED GENERATION: pairwise decoder creates [B, 38, 38, 768] tensor.
+        # B=10000 → ~41 GB OOM. Chunk into batches of 128, concat on CPU.
+        gen_batch_size = 128
+        all_adj, all_node, all_bond = [], [], []
+
+        with torch.no_grad():
+            for start in range(0, num_molecules, gen_batch_size):
+                end = min(start + gen_batch_size, num_molecules)
+                z = torch.randn(end - start, self.latent_dim, device=device)
+                z = z * temperature
+                adj_logits, node_pred_b, bond_pred_b = self.decoder(z)
+
+                adj_pred_b = torch.sigmoid(adj_logits)
+                node_existence = adj_pred_b.max(dim=2).values
+                adj_pred_b = adj_pred_b + torch.diag_embed(node_existence)
+
+                all_adj.append(adj_pred_b.cpu())
+                all_node.append(node_pred_b.cpu())
+                all_bond.append(bond_pred_b.cpu())
+
+        adj_pred  = torch.cat(all_adj,  dim=0).to(device)
+        node_pred = torch.cat(all_node, dim=0).to(device)
+        bond_pred = torch.cat(all_bond, dim=0).to(device)
 
         return adj_pred, node_pred, bond_pred
 

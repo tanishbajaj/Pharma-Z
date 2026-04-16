@@ -388,16 +388,15 @@ def adjacency_to_smiles_valence_masked(
     Convert predicted graph outputs to SMILES using valence-masked
     iterative edge placement (RGCVAE + JT-VAE approach).
 
-    Unlike threshold-based reconstruction, this method:
-        1. Picks atom types via argmax
+    Post-processing improvements:
+        1. Filters isolated nodes — only keeps atoms with ≥1 edge above
+           threshold, eliminating disconnected "C.C.C..." fragments
         2. Sorts candidate edges by probability (descending)
         3. Iteratively places edges, checking valence budget at each step
         4. For each edge, picks the highest-probability bond type that
            respects both atoms' remaining valence
-        5. Adds implicit hydrogens to fill remaining valence
-
-    This enforces chemical validity during generation, achieving ~99.9%
-    validity (RGCVAE, Rigoni et al. 2025) vs ~55% with naive thresholding.
+        5. Keeps only the largest connected fragment (rdmolops.GetMolFrags)
+        6. Adds implicit hydrogens to fill remaining valence
 
     Args:
         adj_matrix:    Predicted adjacency [max_nodes, max_nodes].
@@ -420,9 +419,30 @@ def adjacency_to_smiles_valence_masked(
         if not active_mask.any():
             return None
 
-        active_indices = np.where(active_mask)[0]
-        if len(active_indices) < 2:
+        active_indices_raw = np.where(active_mask)[0]
+        if len(active_indices_raw) < 2:
             return None
+
+        # --- Step 1b: Filter to connected nodes only ---
+        # Only keep nodes that have at least one off-diagonal edge above
+        # threshold to another active node. This eliminates the "C.C.C..."
+        # disconnected fragments caused by empty atom slots.
+        edge_adj = adj_matrix.copy()
+        np.fill_diagonal(edge_adj, 0)
+        edge_adj = np.maximum(edge_adj, edge_adj.T)  # symmetrize
+
+        connected_nodes = set()
+        for i_pos, orig_i in enumerate(active_indices_raw):
+            for j_pos in range(i_pos + 1, len(active_indices_raw)):
+                orig_j = active_indices_raw[j_pos]
+                if edge_adj[orig_i, orig_j] > threshold:
+                    connected_nodes.add(orig_i)
+                    connected_nodes.add(orig_j)
+
+        if len(connected_nodes) < 2:
+            return None
+
+        active_indices = np.array(sorted(connected_nodes))
 
         # --- Step 2: Assign atom types via argmax ---
         atom_type_logits = node_features[:, :NUM_ATOM_TYPES]
@@ -444,10 +464,6 @@ def adjacency_to_smiles_valence_masked(
         remaining_valence = {idx: max_valences[idx] for idx in active_indices}
 
         # --- Step 3: Collect candidate edges and sort by probability ---
-        edge_adj = adj_matrix.copy()
-        np.fill_diagonal(edge_adj, 0)
-        edge_adj = np.maximum(edge_adj, edge_adj.T)  # symmetrize
-
         candidates = []
         for i_pos, orig_i in enumerate(active_indices):
             for j_pos in range(i_pos + 1, len(active_indices)):
@@ -460,7 +476,8 @@ def adjacency_to_smiles_valence_masked(
         candidates.sort(key=lambda x: x[0], reverse=True)
 
         # --- Step 4: Iteratively place edges with valence checking ---
-        bond_weight_map = {0: 1, 1: 2, 2: 3, 3: 1}  # single=1, double=2, triple=3, aromatic=1
+        # Bond weight: single=1, double=2, triple=3, aromatic=1.5→1
+        bond_weight_map = {0: 1, 1: 2, 2: 3, 3: 1}
 
         placed_bonds = []  # List of (i, j, bond_type_idx)
 
@@ -473,24 +490,30 @@ def adjacency_to_smiles_valence_masked(
             bt_order = np.argsort(bt_probs)[::-1]  # highest probability first
 
             # Try each bond type, pick the first that respects both atoms' valence
-            placed = False
             for bt_idx in bt_order:
                 bw = bond_weight_map.get(int(bt_idx), 1)
                 if remaining_valence[orig_i] >= bw and remaining_valence[orig_j] >= bw:
                     placed_bonds.append((orig_i, orig_j, int(bt_idx)))
                     remaining_valence[orig_i] -= bw
                     remaining_valence[orig_j] -= bw
-                    placed = True
                     break
 
             # If no bond type fits, skip this edge entirely
 
+        if not placed_bonds:
+            return None
+
         # --- Step 5: Build RDKit molecule ---
         mol = Chem.RWMol()
 
-        # Add atoms
+        # Only add atoms that participate in at least one placed bond
+        bonded_atoms = set()
+        for orig_i, orig_j, _ in placed_bonds:
+            bonded_atoms.add(orig_i)
+            bonded_atoms.add(orig_j)
+
         idx_map = {}
-        for orig_idx in active_indices:
+        for orig_idx in sorted(bonded_atoms):
             atom = Chem.Atom(atomic_nums[orig_idx])
             new_idx = mol.AddAtom(atom)
             idx_map[orig_idx] = new_idx
@@ -500,7 +523,20 @@ def adjacency_to_smiles_valence_masked(
             rdkit_bt = INV_BOND_TYPE_MAP.get(bt_idx, Chem.BondType.SINGLE)
             mol.AddBond(idx_map[orig_i], idx_map[orig_j], rdkit_bt)
 
-        # --- Step 6: Sanitize and return ---
+        # --- Step 6: Keep only the largest connected fragment ---
+        # This eliminates any remaining disconnected pieces (the "C.C.C..."
+        # problem that was degrading validity).
+        try:
+            mol_sanitized = mol.GetMol()
+            frags = rdmolops.GetMolFrags(mol_sanitized, asMols=True,
+                                          sanitizeFrags=False)
+            if frags:
+                # Pick the fragment with the most atoms
+                mol = Chem.RWMol(max(frags, key=lambda m: m.GetNumAtoms()))
+        except Exception:
+            pass  # if fragmentation fails, proceed with full mol
+
+        # --- Step 7: Sanitize and return ---
         try:
             Chem.SanitizeMol(mol)
             smiles = Chem.MolToSmiles(mol)
@@ -508,7 +544,8 @@ def adjacency_to_smiles_valence_masked(
             if Chem.MolFromSmiles(smiles) is not None:
                 return smiles
         except Exception:
-            # Try without sanitization flags that might fail
+            # Try partial sanitization — skip valence check (we've already
+            # enforced it manually) and let RDKit fix aromaticity
             try:
                 Chem.SanitizeMol(
                     mol,

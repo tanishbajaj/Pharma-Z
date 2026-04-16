@@ -313,6 +313,7 @@ def train_graph_vae(
     beta_max: Optional[float] = None,
     num_cycles: Optional[int] = None,
     annealing_ratio: Optional[float] = None,
+    start_epoch: int = 0,  # Epoch offset for resuming: keeps β schedule correct
 ) -> Dict:
     """
     Train the GraphVAE model with weighted reconstruction loss (Paper Eq. 3).
@@ -396,10 +397,11 @@ def train_graph_vae(
     for epoch in range(1, num_epochs + 1):
         epoch_start = time.time()
 
-        # Compute β (KL weight) for this epoch
+        # Compute β for this epoch, offset by start_epoch when resuming
         if use_cyclical_annealing:
             current_kl_weight = cyclical_beta_schedule(
-                epoch, num_epochs, num_cycles, beta_max, annealing_ratio
+                epoch + start_epoch, num_epochs + start_epoch,
+                num_cycles, beta_max, annealing_ratio
             )
         else:
             current_kl_weight = kl_weight
@@ -495,13 +497,14 @@ def train_graph_vae(
             f"Time: {epoch_time:.1f}s"
         )
 
-        # Save checkpoint
+        # Save checkpoint — use absolute epoch number (relative + start_epoch offset)
         if epoch % save_every == 0 or epoch == num_epochs:
+            abs_epoch = epoch + start_epoch
             ckpt_path = os.path.join(
-                checkpoint_dir, f"graph_vae_epoch_{epoch}.pt"
+                checkpoint_dir, f"graph_vae_epoch_{abs_epoch}.pt"
             )
             save_model_checkpoint(
-                model, optimizer, epoch, avg["total"], ckpt_path
+                model, optimizer, abs_epoch, avg["total"], ckpt_path
             )
 
     logger.info("RGCVAE training complete.")
