@@ -94,6 +94,65 @@ def load_tox21_dataset(
     return smiles_list, labels_matrix, available_labels
 
 
+def scaffold_split(
+    smiles_list: List[str],
+    frac_train: float = 0.8,
+    frac_valid: float = 0.1,
+) -> tuple:
+    """
+    Bemis-Murcko scaffold split: whole scaffold groups go to one partition.
+
+    A random split leaks structural analogs between train and test — Tox21 is
+    full of them — so the model can score well by recognising near-duplicates.
+    Assigning entire scaffold groups to a single partition removes that
+    shortcut, as in Tursunbadalov & Tursunbadalov (arXiv:2607.06605), who
+    state that "whole groups are assigned to a single partition".
+
+    Groups are placed largest-first so the big scaffold families land in
+    train and the test set is made of rarer, genuinely unseen cores.
+
+    Returns:
+        (train_idx, valid_idx, test_idx) as numpy arrays.
+    """
+    from collections import defaultdict
+    from rdkit import Chem
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+
+    scaffolds = defaultdict(list)
+    for index, smiles in enumerate(smiles_list):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            key = ""
+        else:
+            try:
+                key = MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False)
+            except Exception:
+                key = ""
+        scaffolds[key].append(index)
+
+    # Largest scaffold groups first
+    groups = sorted(scaffolds.values(), key=len, reverse=True)
+
+    total = len(smiles_list)
+    n_train = frac_train * total
+    n_valid = (frac_train + frac_valid) * total
+
+    train_idx, valid_idx, test_idx = [], [], []
+    for group in groups:
+        if len(train_idx) + len(group) <= n_train:
+            train_idx.extend(group)
+        elif len(train_idx) + len(valid_idx) + len(group) <= n_valid:
+            valid_idx.extend(group)
+        else:
+            test_idx.extend(group)
+
+    logger.info(
+        f"Scaffold split: {len(scaffolds)} unique scaffolds -> "
+        f"train {len(train_idx)}, valid {len(valid_idx)}, test {len(test_idx)}"
+    )
+    return np.array(train_idx), np.array(valid_idx), np.array(test_idx)
+
+
 def prepare_toxicity_data(
     smiles_list: List[str],
     labels: np.ndarray = None,
@@ -230,11 +289,23 @@ def predict_toxicity(
 
     if model is None:
         if _toxicity_model is None or not _toxicity_model.is_trained:
+            # Fall back to the checkpoint train_toxicity.py writes, so the
+            # pipeline works without every caller naming a path.
+            if model_path is None:
+                default_path = os.path.join(
+                    settings.saved_models_dir, "toxicity", "toxicity_rf_model.pkl"
+                )
+                if os.path.exists(default_path):
+                    model_path = default_path
+
             if model_path:
                 _toxicity_model = joblib.load(model_path)
                 logger.info(f"Loaded toxicity model from: {model_path}")
             else:
-                raise ValueError("No model available. Train first or provide model_path.")
+                raise ValueError(
+                    "No trained toxicity model found. Run "
+                    "`python scripts/train_toxicity.py` or pass model_path."
+                )
         model = _toxicity_model
 
     return model.predict_single_smiles(smiles)

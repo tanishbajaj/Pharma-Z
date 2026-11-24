@@ -84,6 +84,59 @@ def batch_smiles_to_fingerprints(smiles_list: List[str]) -> tuple:
 # Model
 # ---------------------------------------------------------------------------
 
+class MaskedMultiOutputRF:
+    """
+    One Random Forest per assay, each trained ONLY on measured labels.
+
+    Tox21 tests each molecule on a subset of the 12 assays, leaving ~17% of
+    label cells missing. scikit-learn's MultiOutputClassifier cannot mask
+    per-output, so the usual workaround is to fill missing entries with 0 —
+    which silently invents ~16,000 "non-toxic" labels. Ebner et al. (2025),
+    arXiv:2511.14744, identify that zero-filling as a source of benchmark
+    drift on Tox21 and recommend masking instead.
+
+    This class exposes `estimators_` and a list-returning `predict_proba`,
+    so it is drop-in compatible with how ToxicityPredictor consumes a
+    MultiOutputClassifier.
+    """
+
+    def __init__(self, n_estimators: int = N_ESTIMATORS, random_state: int = RANDOM_STATE):
+        self.n_estimators = n_estimators
+        self.random_state = random_state
+        self.estimators_: List[RandomForestClassifier] = []
+        self.n_train_per_assay: List[int] = []
+
+    def fit(self, features: np.ndarray, labels: np.ndarray):
+        """
+        Args:
+            features: (n, n_bits) fingerprints.
+            labels:   (n, k) with np.nan where the assay was not measured.
+        """
+        self.estimators_ = []
+        self.n_train_per_assay = []
+
+        for index in range(labels.shape[1]):
+            measured = ~np.isnan(labels[:, index])
+            classifier = RandomForestClassifier(
+                n_estimators=self.n_estimators,
+                random_state=self.random_state,
+                n_jobs=-1,
+                class_weight="balanced",
+            )
+            classifier.fit(features[measured], labels[measured, index].astype(int))
+            self.estimators_.append(classifier)
+            self.n_train_per_assay.append(int(measured.sum()))
+
+        return self
+
+    def predict_proba(self, features: np.ndarray) -> list:
+        """Mirrors MultiOutputClassifier: a list of (n, 2) arrays."""
+        return [estimator.predict_proba(features) for estimator in self.estimators_]
+
+    def predict(self, features: np.ndarray) -> np.ndarray:
+        return np.column_stack([e.predict(features) for e in self.estimators_])
+
+
 class ToxicityPredictor:
     """
     Random Forest-based toxicity prediction model.
@@ -97,13 +150,56 @@ class ToxicityPredictor:
         n_estimators: int = N_ESTIMATORS,
         random_state: int = RANDOM_STATE,
         multi_label: bool = True,
+        aggregation: str = "max",
+        toxic_threshold: float = 0.5,
     ):
         self.n_estimators = n_estimators
         self.random_state = random_state
         self.multi_label = multi_label
+        # How 12 per-assay probabilities collapse into one screening score,
+        # and the cutoff for is_toxic. Both are chosen on a validation split
+        # by scripts/train_toxicity.py — "mean > 0.5" never fires, because
+        # per-assay positive rates are only 3-16%.
+        self.aggregation = aggregation
+        self.toxic_threshold = toxic_threshold
         self.model = None
         self.label_names: List[str] = []
         self.is_trained = False
+
+    def train_masked(
+        self,
+        features: np.ndarray,
+        labels: np.ndarray,
+        label_names: List[str] = None,
+    ):
+        """
+        Train one RF per assay on measured labels only (NaN = not measured).
+        """
+        self.label_names = label_names or [
+            f"toxicity_{i}" for i in range(labels.shape[1])
+        ]
+        self.multi_label = True
+        self.model = MaskedMultiOutputRF(
+            n_estimators=self.n_estimators, random_state=self.random_state
+        ).fit(features, labels)
+        self.is_trained = True
+        return self
+
+    def aggregate(self, probabilities: np.ndarray) -> np.ndarray:
+        """
+        Collapse per-assay probabilities (n, k) into one score per molecule.
+
+        max      — a molecule strongly toxic on ONE assay is toxic; averaging
+                   that against 11 clean assays dilutes the signal away.
+        noisy_or — 1 - prod(1 - p), treats assays as independent evidence.
+        mean     — the original behaviour, kept for comparison.
+        """
+        mode = getattr(self, "aggregation", "mean")
+        if mode == "max":
+            return probabilities.max(axis=1)
+        if mode == "noisy_or":
+            return 1.0 - np.prod(1.0 - probabilities, axis=1)
+        return probabilities.mean(axis=1)
 
     def build_model(self, num_labels: int = 1):
         """Initialize the Random Forest classifier."""
@@ -221,10 +317,13 @@ class ToxicityPredictor:
             result["toxicity_probability"] = round(tox_prob, 4)
             result["is_toxic"] = tox_prob > 0.5
         else:
-            # Multi-label
-            avg_prob = float(np.mean(probabilities[0]))
-            result["toxicity_probability"] = round(avg_prob, 4)
-            result["is_toxic"] = avg_prob > 0.5
+            # Multi-label: aggregate with the configured rule and threshold.
+            score = float(self.aggregate(probabilities)[0])
+            threshold = getattr(self, "toxic_threshold", 0.5)
+            result["toxicity_probability"] = round(score, 4)
+            result["is_toxic"] = score > threshold
+            result["aggregation"] = getattr(self, "aggregation", "mean")
+            result["threshold"] = threshold
             result["label_probabilities"] = {
                 name: round(float(prob), 4)
                 for name, prob in zip(self.label_names, probabilities[0])
