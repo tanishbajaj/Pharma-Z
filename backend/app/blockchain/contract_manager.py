@@ -29,7 +29,13 @@ except ImportError:
 _web3_instance: Optional[object] = None
 _contract_instance: Optional[object] = None
 
-# Compiled ABI for AuditTrail (simplified — in production, compile from .sol)
+# scripts/deploy_contract.py writes the real compiled ABI here. Prefer it over
+# the hand-written fallback below, which can silently drift from the .sol.
+_COMPILED_ABI_PATH = os.path.join(
+    os.path.dirname(__file__), "contracts", "AuditTrail.abi.json"
+)
+
+# Hand-written fallback ABI, used only if the contract has never been compiled.
 AUDIT_TRAIL_ABI = [
     {
         "inputs": [],
@@ -125,6 +131,17 @@ def get_web3():
 # Contract Interaction
 # ---------------------------------------------------------------------------
 
+def load_abi() -> list:
+    """The compiled ABI if the contract has been built, else the fallback."""
+    if os.path.exists(_COMPILED_ABI_PATH):
+        try:
+            with open(_COMPILED_ABI_PATH) as handle:
+                return json.load(handle)
+        except Exception as error:
+            logger.warning(f"Could not read compiled ABI ({error}); using fallback")
+    return AUDIT_TRAIL_ABI
+
+
 def get_contract():
     """Get the AuditTrail contract instance."""
     global _contract_instance
@@ -138,12 +155,15 @@ def get_contract():
 
     contract_address = settings.contract_address
     if not contract_address:
-        logger.warning("No contract address configured")
+        logger.warning(
+            "No contract address configured. Deploy first: "
+            "python scripts/deploy_contract.py"
+        )
         return None
 
     _contract_instance = web3.eth.contract(
         address=Web3.to_checksum_address(contract_address),
-        abi=AUDIT_TRAIL_ABI,
+        abi=load_abi(),
     )
     return _contract_instance
 

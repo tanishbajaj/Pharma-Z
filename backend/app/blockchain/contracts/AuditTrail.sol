@@ -83,7 +83,10 @@ contract AuditTrail {
     /**
      * @notice Get an audit record by its ID.
      * @param _recordId The record ID to retrieve.
-     * @return dataHash, eventType, timestamp, submittedBy
+     * @return dataHash The SHA-256 hash stored for this record.
+     * @return eventType The type of audit event.
+     * @return timestamp The block timestamp when the record was stored.
+     * @return submittedBy The address that submitted the record.
      */
     function getRecord(uint256 _recordId) public view returns (
         string memory dataHash,
