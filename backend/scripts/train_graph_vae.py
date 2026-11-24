@@ -52,6 +52,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
+import pandas as pd
 
 from app.services.graph_molecule_service import (
     load_graph_dataset,
@@ -61,7 +62,38 @@ from app.services.graph_molecule_service import (
     evaluate_graph_generation,
     GRAPH_VAE_DEFAULTS,
 )
-from app.models.training_utils import get_training_device
+from app.models.training_utils import get_training_device, load_model_checkpoint
+from app.models.graph_vae import NODE_EXISTENCE_KEY_PREFIX
+
+
+def load_training_smiles(smiles_file, max_samples=None):
+    """
+    Canonical training SMILES, for the novelty metric.
+
+    Generated molecules come back as RDKit canonical SMILES, so the training
+    set is canonicalised the same way — otherwise every comparison misses and
+    novelty reads as a meaningless 100%.
+    """
+    from rdkit import Chem, RDLogger
+    RDLogger.DisableLog("rdApp.*")
+
+    if smiles_file.endswith(".csv"):
+        frame = pd.read_csv(smiles_file)
+        column = "smiles" if "smiles" in frame.columns else frame.columns[0]
+        raw = frame[column].tolist()
+    else:
+        with open(smiles_file) as handle:
+            raw = [line.split()[0] for line in handle if line.strip()]
+
+    if max_samples:
+        raw = raw[:max_samples]
+
+    canonical = set()
+    for smiles in raw:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is not None:
+            canonical.add(Chem.MolToSmiles(mol))
+    return list(canonical)
 
 
 def main():
@@ -163,6 +195,19 @@ def main():
         help="Number of molecules to generate for evaluation"
     )
     parser.add_argument(
+        "--num-workers", type=int, default=0,
+        help="DataLoader workers. >0 parallelises SMILES->graph conversion in "
+             "streaming mode (each worker takes a disjoint shard)."
+    )
+    parser.add_argument(
+        "--force-streaming", action="store_true",
+        help="Stream even for small datasets (useful for testing the path)"
+    )
+    parser.add_argument(
+        "--shuffle-buffer", type=int, default=50_000,
+        help="Reservoir buffer for streaming shuffle; 0 disables shuffling"
+    )
+    parser.add_argument(
         "--skip-eval", action="store_true",
         help="Skip post-training evaluation"
     )
@@ -218,6 +263,8 @@ def main():
         smiles_file=args.smiles_file,
         max_nodes=args.max_nodes,
         max_samples=args.max_samples,
+        force_streaming=args.force_streaming,
+        shuffle_buffer=args.shuffle_buffer,
     )
     load_time = time.time() - t0
     print(f"  ✓ Dataset: {len(dataset):,} molecular graphs ({load_time:.1f}s)")
@@ -234,7 +281,7 @@ def main():
         dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=0,  # Must be 0 — nohup/background processes deadlock with workers
+        num_workers=args.num_workers,
     )
     print(f"  ✓ DataLoader ready ({time.time()-t1:.1f}s)")
 
@@ -257,9 +304,17 @@ def main():
         if not os.path.exists(args.resume):
             print(f"  ✗ Checkpoint not found: {args.resume}")
             sys.exit(1)
-        ckpt = torch.load(args.resume, map_location="cpu")
-        state = ckpt.get("model_state_dict", ckpt)
-        model.load_state_dict(state)
+        # A V1 checkpoint has no node-existence head; resuming into V2 trains
+        # that head from scratch, which is intended. Any other mismatch (e.g.
+        # --max-nodes differing from the checkpoint) still fails here.
+        try:
+            load_model_checkpoint(
+                model, args.resume, allow_missing=(NODE_EXISTENCE_KEY_PREFIX,)
+            )
+        except RuntimeError as error:
+            print(f"  ✗ Checkpoint does not match the requested architecture.")
+            print(f"    Check --max-nodes / --latent-dim / --hidden-dim.\n{error}")
+            sys.exit(1)
         print(f"  ✓ Resumed from: {args.resume} (epoch {args.start_epoch} done)")
 
     # Print parameter count
@@ -301,11 +356,17 @@ def main():
         print("[Step 4/4] Evaluating generation quality")
         print(f"{'=' * 65}")
 
-        print(f"\n  Generating {args.eval_samples} molecules...")
+        # Novelty is measured against the training set. Without this the
+        # service defaults to novelty=0.0, which is what made every previous
+        # run report 0% novelty regardless of what it generated.
+        training_smiles = load_training_smiles(args.smiles_file, args.max_samples)
+        print(f"\n  Generating {args.eval_samples} molecules "
+              f"(novelty vs {len(training_smiles):,} training SMILES)...")
         metrics = evaluate_graph_generation(
             num_samples=args.eval_samples,
             model=model,
             temperature=1.0,
+            training_smiles=training_smiles,
         )
 
         # Pretty-print metrics table

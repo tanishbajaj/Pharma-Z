@@ -24,7 +24,12 @@ except ImportError:
     DataLoader = None  # torch-geometric not installed; GraphVAE training unavailable
 
 from app.config import settings
-from app.models.graph_vae import GraphVAE, compute_graph_vae_loss
+from app.models.graph_vae import (
+    GraphVAE,
+    compute_graph_vae_loss,
+    checkpoint_has_node_existence_head,
+    NODE_EXISTENCE_KEY_PREFIX,
+)
 from app.models.graph_dataset import ZINCGraphDataset
 from app.models.graph_streaming_dataset import StreamingGraphDataset
 from app.models.graph_utils import (
@@ -46,23 +51,23 @@ from app.utils.logging_config import logger
 # ---------------------------------------------------------------------------
 
 GRAPH_VAE_DEFAULTS = {
-    "max_nodes": 38,
+    "max_nodes": 25,          # V2: reduced from 38 → 25 (covers 95%+ of ZINC)
     "latent_dim": 128,
     "hidden_dim": 256,
-    "batch_size": 128,
-    "learning_rate": 3e-4,   # FIXED: 1e-3 caused early collapse
-    "num_epochs": 50,
+    "batch_size": 64,         # V2: reduced from 128 → 64 for stability
+    "learning_rate": 3e-4,
+    "num_epochs": 100,        # V2: increased from 50 → 100 (adj loss still improving)
     # Cyclical β annealing (Paper 4: TGVAE)
-    # Replaces fixed kl_weight for better latent space exploration
     "kl_weight": 0.005,       # legacy fixed weight (used if annealing disabled)
-    "beta_max": 0.01,         # FIXED: 0.05 was too aggressive, caused KL collapse
+    "beta_max": 0.05,         # V2: increased from 0.01 → 0.05 for better regularization
     "num_cycles": 4,          # number of annealing cycles
     "annealing_ratio": 0.5,   # fraction of each cycle spent ramping up
-    "use_cyclical_annealing": True,  # enable TGVAE-style cyclical β
-    # Weighted reconstruction loss (Paper Eq. 3)
+    "use_cyclical_annealing": True,
+    # Weighted reconstruction loss
     "lambda_adj": 1.0,
     "lambda_node": 1.0,
     "lambda_bond": 1.0,
+    "lambda_exist": 2.0,      # V2: strong weight for node existence learning
 }
 
 
@@ -87,6 +92,7 @@ def load_graph_dataset(
     max_samples: Optional[int] = None,
     cache_dir: Optional[str] = None,
     force_streaming: bool = False,
+    shuffle_buffer: int = 50_000,
 ):
     """
     Load the ZINC graph dataset.
@@ -145,6 +151,7 @@ def load_graph_dataset(
             max_nodes=max_nodes,
             chunk_size=10000,
             max_samples=max_samples,
+            shuffle_buffer=shuffle_buffer,
         )
         logger.info(
             f"Streaming dataset: ~{len(dataset):,} molecules | "
@@ -192,7 +199,8 @@ def create_graph_dataloader(
     if batch_size is None:
         batch_size = GRAPH_VAE_DEFAULTS["batch_size"]
 
-    # Streaming datasets don't support shuffle
+    # DataLoader cannot shuffle an IterableDataset — StreamingGraphDataset
+    # shuffles internally with a reservoir buffer instead.
     is_streaming = isinstance(dataset, StreamingGraphDataset)
 
     loader = DataLoader(
@@ -201,14 +209,19 @@ def create_graph_dataloader(
         shuffle=(shuffle and not is_streaming),
         num_workers=num_workers,
         pin_memory=True,
+        persistent_workers=(num_workers > 0),
     )
 
     mode = "STREAMING" if is_streaming else "IN-MEMORY"
     approx_batches = len(dataset) // batch_size if hasattr(dataset, '__len__') else '?'
+    detail = ""
+    if is_streaming:
+        detail = (f", workers={num_workers}, "
+                  f"shuffle_buffer={dataset.shuffle_buffer:,}")
     logger.info(
         f"DataLoader [{mode}]: ~{len(dataset):,} graphs, "
         f"batch_size={batch_size}, "
-        f"~{approx_batches} batches/epoch"
+        f"~{approx_batches} batches/epoch{detail}"
     )
     return loader
 
@@ -255,6 +268,68 @@ def initialize_graph_vae(
     )
 
     return _graph_vae_model
+
+
+def load_graph_vae_checkpoint(checkpoint_path: str) -> GraphVAE:
+    """
+    Build a GraphVAE matching `checkpoint_path` and load its weights.
+
+    Dimensions are read from the checkpoint rather than GRAPH_VAE_DEFAULTS,
+    which drift between training runs (V1 trained at max_nodes=38, the V2
+    default is 25).
+
+    V1 checkpoints have no learned node-existence head. Those are loaded with
+    the head left uninitialized and generation switched back to the V1
+    max-edge heuristic, so they reproduce their original output instead of
+    reading a random head — which would look like molecules and be noise.
+
+    Raises:
+        RuntimeError: if the checkpoint mismatches in any other way.
+    """
+    global _graph_vae_model
+
+    raw = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state_dict = raw.get("model_state_dict", raw)
+
+    max_nodes = GRAPH_VAE_DEFAULTS["max_nodes"]
+    latent_dim = GRAPH_VAE_DEFAULTS["latent_dim"]
+    hidden_dim = GRAPH_VAE_DEFAULTS["hidden_dim"]
+
+    # max_nodes, hidden_dim → decoder.pos_embed.weight; latent_dim → encoder.fc_mu
+    if "decoder.pos_embed.weight" in state_dict:
+        max_nodes, hidden_dim = state_dict["decoder.pos_embed.weight"].shape
+    if "encoder.fc_mu.bias" in state_dict:
+        latent_dim = state_dict["encoder.fc_mu.bias"].shape[0]
+
+    logger.info(
+        f"Detected checkpoint architecture: max_nodes={max_nodes}, "
+        f"latent_dim={latent_dim}, hidden_dim={hidden_dim}"
+    )
+
+    model = initialize_graph_vae(
+        max_nodes=int(max_nodes),
+        latent_dim=int(latent_dim),
+        hidden_dim=int(hidden_dim),
+    )
+
+    has_head = checkpoint_has_node_existence_head(state_dict)
+    load_model_checkpoint(
+        model,
+        checkpoint_path,
+        allow_missing=() if has_head else (NODE_EXISTENCE_KEY_PREFIX,),
+    )
+    model.use_learned_node_existence = has_head
+
+    if not has_head:
+        logger.warning(
+            f"'{checkpoint_path}' is a V1 checkpoint (no learned node-existence "
+            f"head). Falling back to the V1 max-edge heuristic for node "
+            f"existence, which is the setup that produced disconnected "
+            f"'C.C.C...' fragments. Retrain to use the learned head."
+        )
+
+    _graph_vae_model = model
+    return model
 
 
 # ---------------------------------------------------------------------------
@@ -374,8 +449,9 @@ def train_graph_vae(
         "recon_adj_loss": [],
         "recon_node_loss": [],
         "recon_bond_loss": [],
+        "node_exist_loss": [],
         "kl_loss": [],
-        "kl_weight": [],  # NEW: track β over time
+        "kl_weight": [],  # track β over time
         "epoch_time": [],
     }
 
@@ -407,7 +483,8 @@ def train_graph_vae(
             current_kl_weight = kl_weight
 
         epoch_losses = {
-            "total": 0.0, "adj": 0.0, "node": 0.0, "bond": 0.0, "kl": 0.0
+            "total": 0.0, "adj": 0.0, "exist": 0.0,
+            "node": 0.0, "bond": 0.0, "kl": 0.0
         }
         num_batches = 0
 
@@ -417,7 +494,7 @@ def train_graph_vae(
             optimizer.zero_grad()
 
             # Forward pass — returns 6-tuple (adj_pred, node_pred, bond_pred, mu, logvar, adj_logits)
-            adj_pred, node_pred, bond_pred, mu, logvar, adj_logits = model(batch)
+            adj_pred, node_pred, bond_pred, mu, logvar, adj_logits, node_exist_logits = model(batch)
 
             # Get ground truth tensors
             adj_true = batch.adj.view(-1, model.max_nodes, model.max_nodes)
@@ -428,7 +505,7 @@ def train_graph_vae(
                 -1, model.max_nodes, model.max_nodes
             )
 
-            # Compute weighted loss (RGCVAE-enhanced: CE node loss + cyclical β)
+            # Compute weighted loss (V2: includes node existence head)
             losses = compute_graph_vae_loss(
                 adj_pred=adj_pred,
                 node_pred=node_pred,
@@ -439,6 +516,7 @@ def train_graph_vae(
                 mu=mu,
                 logvar=logvar,
                 adj_logits=adj_logits,
+                node_exist_logits=node_exist_logits,
                 kl_weight=current_kl_weight,
                 lambda_adj=lambda_adj,
                 lambda_node=lambda_node,
@@ -463,6 +541,7 @@ def train_graph_vae(
 
             epoch_losses["total"] += losses["total_loss"].item()
             epoch_losses["adj"] += losses["recon_adj_loss"].item()
+            epoch_losses["exist"] += losses["node_exist_loss"].item()
             epoch_losses["node"] += losses["recon_node_loss"].item()
             epoch_losses["bond"] += losses["recon_bond_loss"].item()
             epoch_losses["kl"] += losses["kl_loss"].item()
@@ -474,6 +553,7 @@ def train_graph_vae(
 
         history["total_loss"].append(avg["total"])
         history["recon_adj_loss"].append(avg["adj"])
+        history["node_exist_loss"].append(avg.get("exist", 0.0))
         history["recon_node_loss"].append(avg["node"])
         history["recon_bond_loss"].append(avg["bond"])
         history["kl_loss"].append(avg["kl"])
@@ -484,11 +564,12 @@ def train_graph_vae(
         scheduler.step(avg["total"])
         current_lr = optimizer.param_groups[0]["lr"]
 
-        # Logging (include β value for cyclical annealing)
+        # Logging (V2: includes node existence loss)
         logger.info(
             f"Epoch {epoch:>3}/{num_epochs} | "
             f"Total: {avg['total']:.4f} | "
             f"Adj: {avg['adj']:.4f} | "
+            f"Exist: {avg.get('exist', 0):.4f} | "
             f"Node: {avg['node']:.4f} | "
             f"Bond: {avg['bond']:.4f} | "
             f"KL: {avg['kl']:.4f} | "
@@ -540,8 +621,7 @@ def generate_molecules_graph(
     if model is None:
         if _graph_vae_model is None:
             if checkpoint_path:
-                _graph_vae_model = initialize_graph_vae()
-                load_model_checkpoint(_graph_vae_model, checkpoint_path)
+                _graph_vae_model = load_graph_vae_checkpoint(checkpoint_path)
             else:
                 raise ValueError(
                     "No model available. Train first or provide checkpoint."

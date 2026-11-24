@@ -309,6 +309,15 @@ class PairwiseDecoder(nn.Module):
             nn.Linear(hidden_dim, node_feature_dim),
         )
 
+        # NODE EXISTENCE HEAD — predicts whether each atom slot is real.
+        # This eliminates disconnected "C.C.C..." fragments by learning
+        # which slots should be active instead of relying on post-processing.
+        self.node_existence_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Linear(hidden_dim // 2, 1),
+        )
+
         # ------------------------------------------------------------------
         # Stage 2: Edge decoder — pairwise predictions (Paper §3.2.2)
         # ------------------------------------------------------------------
@@ -343,9 +352,10 @@ class PairwiseDecoder(nn.Module):
             z: Latent vectors [B, latent_dim]
 
         Returns:
-            adj_logits:  Edge existence logits [B, N, N] (symmetric, diag=0)
-            node_pred:   Node feature predictions [B, N, node_feature_dim]
-            bond_pred:   Bond type logits [B, N, N, NUM_BOND_TYPES]
+            adj_logits:        Edge existence logits [B, N, N] (symmetric, diag=0)
+            node_pred:         Node feature predictions [B, N, node_feature_dim]
+            bond_pred:         Bond type logits [B, N, N, NUM_BOND_TYPES]
+            node_exist_logits: Node existence logits [B, N] (learned, not heuristic)
         """
         B = z.size(0)
         N = self.max_nodes
@@ -362,6 +372,9 @@ class PairwiseDecoder(nn.Module):
 
         # Predict node features (atom types + continuous)
         node_pred = self.node_feature_head(node_hidden)  # [B, N, node_feature_dim]
+
+        # Predict node existence (learned head, replaces heuristic max-edge)
+        node_exist_logits = self.node_existence_head(node_hidden).squeeze(-1)  # [B, N]
 
         # ==== Stage 2: Edge Decoding (Paper §3.2.2) ====
         # s_v = node_hidden[v] (already contains atom info)
@@ -401,7 +414,25 @@ class PairwiseDecoder(nn.Module):
         # Make bond types symmetric too
         bond_pred = (bond_pred + bond_pred.transpose(1, 2)) / 2.0
 
-        return adj_logits, node_pred, bond_pred
+        return adj_logits, node_pred, bond_pred, node_exist_logits
+
+
+# ---------------------------------------------------------------------------
+# Checkpoint compatibility
+# ---------------------------------------------------------------------------
+
+# V2 added a learned node-existence head to the decoder. Checkpoints trained
+# before that ("V1") carry no weights for it, and the mismatch is missing keys
+# only — no shape conflict — so a V1 checkpoint loads into a V2 model without
+# error and leaves the head at random init. Node existence decides which atom
+# slots become atoms, so generation would then sample noise and report nothing
+# wrong. Detect the head and fall back to the V1 heuristic when it is absent.
+NODE_EXISTENCE_KEY_PREFIX = "decoder.node_existence_head."
+
+
+def checkpoint_has_node_existence_head(state_dict: dict) -> bool:
+    """True if `state_dict` carries trained node-existence weights (V2)."""
+    return any(key.startswith(NODE_EXISTENCE_KEY_PREFIX) for key in state_dict)
 
 
 # ---------------------------------------------------------------------------
@@ -426,7 +457,8 @@ class GraphVAE(nn.Module):
 
     Usage:
         model = GraphVAE(max_nodes=38, latent_dim=128, hidden_dim=256)
-        adj_pred, node_pred, bond_pred, mu, logvar = model(batch)
+        (adj_pred, node_pred, bond_pred,
+         mu, logvar, adj_logits, node_exist_logits) = model(batch)
         loss = compute_graph_vae_loss(adj_pred, node_pred, bond_pred, ...)
     """
 
@@ -460,6 +492,12 @@ class GraphVAE(nn.Module):
             node_feature_dim=node_feature_dim,
         )
 
+        # Whether decoder.node_existence_head holds trained weights. The
+        # checkpoint loader clears this for V1 checkpoints so that forward and
+        # generate use the V1 heuristic instead of a randomly initialised head
+        # (see checkpoint_has_node_existence_head).
+        self.use_learned_node_existence = True
+
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """Reparameterization trick: z = μ + ε·σ"""
         if self.training:
@@ -468,6 +506,21 @@ class GraphVAE(nn.Module):
             return mu + eps * std
         else:
             return mu  # use mean for inference
+
+    def _node_existence(
+        self, adj_pred: torch.Tensor, node_exist_logits: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Per-slot node existence probabilities [B, max_nodes].
+
+        V2 uses the learned head. V1 checkpoints have no trained head, so they
+        fall back to the original heuristic — a slot is as "real" as its
+        strongest edge — which reproduces their documented behaviour rather
+        than reading a random head.
+        """
+        if self.use_learned_node_existence:
+            return torch.sigmoid(node_exist_logits)
+        return adj_pred.max(dim=2).values
 
     def forward(self, batch: Batch) -> tuple:
         """
@@ -480,23 +533,24 @@ class GraphVAE(nn.Module):
             adj_pred:   [batch_size, max_nodes, max_nodes] (probabilities with node existence)
             node_pred:  [batch_size, max_nodes, node_feature_dim]
             bond_pred:  [batch_size, max_nodes, max_nodes, NUM_BOND_TYPES]
-            mu:         [batch_size, latent_dim]
-            logvar:     [batch_size, latent_dim]
-            adj_logits: [batch_size, max_nodes, max_nodes] (raw logits for loss)
+            mu:                [batch_size, latent_dim]
+            logvar:            [batch_size, latent_dim]
+            adj_logits:        [batch_size, max_nodes, max_nodes] (raw logits for loss)
+            node_exist_logits: [batch_size, max_nodes] (raw logits for loss)
         """
         # RGIN encoder requires edge_type
         mu, logvar = self.encoder(
             batch.x, batch.edge_index, batch.edge_type, batch.batch
         )
         z = self.reparameterize(mu, logvar)
-        adj_logits, node_pred, bond_pred = self.decoder(z)
+        adj_logits, node_pred, bond_pred, node_exist_logits = self.decoder(z)
 
-        # Build adj_pred (probabilities) for generation and node existence
+        # Build adj_pred (probabilities) with node existence on the diagonal
         adj_pred = torch.sigmoid(adj_logits)
-        node_existence = adj_pred.max(dim=2).values  # [B, k]
+        node_existence = self._node_existence(adj_pred, node_exist_logits)  # [B, k]
         adj_pred = adj_pred + torch.diag_embed(node_existence)  # set diagonal
 
-        return adj_pred, node_pred, bond_pred, mu, logvar, adj_logits
+        return adj_pred, node_pred, bond_pred, mu, logvar, adj_logits, node_exist_logits
 
     def generate(
         self,
@@ -532,10 +586,11 @@ class GraphVAE(nn.Module):
                 end = min(start + gen_batch_size, num_molecules)
                 z = torch.randn(end - start, self.latent_dim, device=device)
                 z = z * temperature
-                adj_logits, node_pred_b, bond_pred_b = self.decoder(z)
+                adj_logits, node_pred_b, bond_pred_b, node_exist_logits = self.decoder(z)
 
                 adj_pred_b = torch.sigmoid(adj_logits)
-                node_existence = adj_pred_b.max(dim=2).values
+                # Learned head for V2 checkpoints, max-edge heuristic for V1
+                node_existence = self._node_existence(adj_pred_b, node_exist_logits)
                 adj_pred_b = adj_pred_b + torch.diag_embed(node_existence)
 
                 all_adj.append(adj_pred_b.cpu())
@@ -563,33 +618,29 @@ def compute_graph_vae_loss(
     mu: torch.Tensor,
     logvar: torch.Tensor,
     adj_logits: torch.Tensor = None,
+    node_exist_logits: torch.Tensor = None,
     kl_weight: float = 0.005,
     lambda_adj: float = 1.0,
     lambda_node: float = 1.0,
     lambda_bond: float = 1.0,
+    lambda_exist: float = 2.0,
 ) -> dict:
     """
-    Compute the RGCVAE loss (Paper §4, Eq. 13-18).
+    Compute the RGCVAE loss (Paper §4, Eq. 13-18) with node existence.
 
-    Loss = λ_A * L_rec + β * L_lt
+    Loss = λ_A * L_edge + λ_exist * L_exist + λ_node * L_node
+         + λ_bond * L_bond + β * L_KL
 
-    Where L_rec = L_a(nodes) + L_b(edges) + L_tb(bond types, teacher-forced)
-
-    Key design choices from the paper:
-        - L_b (Eq. 17): Standard BCE for adjacency (paper doesn't use pos_weight
-          because the pairwise decoder naturally handles sparsity)
-        - L_tb (Eq. 16): Teacher-forced bond CE — only compute bond type loss
-          WHERE EDGES ACTUALLY EXIST (A_{v,u} = 1). This avoids diluting the
-          signal across 96% non-edge positions.
-        - L_lt (Eq. 18): KL with free bits to prevent posterior collapse.
+    Key additions:
+        - L_exist: Learned node existence BCE (replaces heuristic diagonal).
+          Weighted at λ=2.0 to strongly incentivize correct atom count.
     """
     k = adj_pred.size(1)
     mask_diag = torch.eye(k, device=adj_pred.device, dtype=torch.bool)
     mask_off = ~mask_diag
 
-    # --- L_b: Adjacency reconstruction (Paper Eq. 17) ---
-    # pos_weight compensates for 96/4 edge sparsity with graph-level z.
-    # (The paper's per-node z doesn't need this, but our graph-level z does.)
+    # --- L_edge: Adjacency reconstruction (Paper Eq. 17) ---
+    # pos_weight compensates for edge sparsity with graph-level z.
     off_diag_true = adj_true[:, mask_off].float()
     num_edges = off_diag_true.sum()
     num_total = off_diag_true.numel()
@@ -609,17 +660,26 @@ def compute_graph_vae_loss(
         t = off_diag_true.clamp(0, 1)
         edge_exist_loss = -(pw * t * torch.log(p) + (1 - t) * torch.log(1 - p)).mean()
 
-    # Diagonal: node existence
-    p_diag = adj_pred[:, mask_diag]
-    p_diag = torch.nan_to_num(p_diag, nan=0.5).clamp(1e-7, 1 - 1e-7)
-    t_diag = adj_true[:, mask_diag].float().clamp(0, 1)
-    node_exist_loss = -(
-        t_diag * torch.log(p_diag) + (1 - t_diag) * torch.log(1 - p_diag)
-    ).mean()
+    # --- L_exist: Node existence from LEARNED HEAD ---
+    # Supervised BCE: target = 1 for real atoms, 0 for padding.
+    # The diagonal of adj_true encodes node existence (1 = real atom).
+    node_exist_target = adj_true[:, mask_diag].float().clamp(0, 1)  # [B, N]
 
-    recon_adj_loss = (node_exist_loss + edge_exist_loss) / 2.0
+    if node_exist_logits is not None:
+        # Learned head — use logits directly with BCE
+        node_exist_loss = F.binary_cross_entropy_with_logits(
+            node_exist_logits, node_exist_target, reduction="mean"
+        )
+    else:
+        # Fallback: use diagonal of adj_pred (legacy)
+        p_diag = adj_pred[:, mask_diag]
+        p_diag = torch.nan_to_num(p_diag, nan=0.5).clamp(1e-7, 1 - 1e-7)
+        node_exist_loss = -(
+            node_exist_target * torch.log(p_diag)
+            + (1 - node_exist_target) * torch.log(1 - p_diag)
+        ).mean()
 
-    # --- L_a: Node feature reconstruction (Paper Eq. 15) ---
+    # --- L_node: Node feature reconstruction (Paper Eq. 15) ---
     # Cross-entropy for categorical atom types
     node_logits = node_pred[:, :, :NUM_ATOM_TYPES]     # [B, N, NUM_ATOM_TYPES]
     node_targets = node_true[:, :, :NUM_ATOM_TYPES].argmax(dim=-1)  # [B, N]
@@ -640,43 +700,31 @@ def compute_graph_vae_loss(
         )
         recon_node_loss = recon_node_loss + 0.5 * recon_continuous_loss
 
-    # --- L_tb: Bond type reconstruction — TEACHER FORCED (Paper Eq. 16) ---
-    # CRITICAL: Only compute bond CE where edges ACTUALLY EXIST.
-    # This prevents the loss from being diluted by 96% non-edge positions.
-    #
-    # Paper Eq. 16: L_tb = -Σ_{v,u} A_{v,u} · Σ_t log(Ẽ_{v,u,t}) · E_{v,u,t}
-    #
-    # We mask bond_pred and bond_true to only edge positions.
+    # --- L_bond: Bond type reconstruction — TEACHER FORCED (Paper Eq. 16) ---
     B_sz, N_sz, _, C = bond_pred.shape
     adj_mask = adj_true[:, :, :].float()  # [B, N, N] — 1 where edge exists
+    num_edges_bond = adj_mask.sum()
 
-    # Count total edges for averaging
-    num_edges = adj_mask.sum()
-
-    if num_edges > 0:
-        # Flatten only where edges exist
-        edge_positions = adj_mask.bool()                         # [B, N, N]
-        bond_logits_at_edges = bond_pred[edge_positions]         # [num_edges, C]
-        bond_targets_at_edges = bond_true[edge_positions].long() # [num_edges]
-
+    if num_edges_bond > 0:
+        edge_positions = adj_mask.bool()
+        bond_logits_at_edges = bond_pred[edge_positions]
+        bond_targets_at_edges = bond_true[edge_positions].long()
         recon_bond_loss = F.cross_entropy(
-            bond_logits_at_edges,
-            bond_targets_at_edges,
-            reduction="mean",
+            bond_logits_at_edges, bond_targets_at_edges, reduction="mean"
         )
     else:
         recon_bond_loss = torch.tensor(0.0, device=adj_pred.device)
 
-    # --- L_lt: KL divergence with FREE BITS (Paper Eq. 18) ---
-    # Free bits prevents posterior collapse (KL → 0).
-    FREE_BITS = 0.25  # nats per dimension
-    kl_per_dim = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())  # [B, D]
+    # --- L_KL: KL divergence with FREE BITS (Paper Eq. 18) ---
+    FREE_BITS = 0.25
+    kl_per_dim = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
     kl_per_dim = torch.clamp(kl_per_dim, min=FREE_BITS)
     kl_loss = kl_per_dim.sum(dim=1).mean()
 
-    # --- Weighted total loss (Paper Eq. 13) ---
+    # --- Weighted total loss ---
     total_loss = (
-        lambda_adj * recon_adj_loss
+        lambda_adj * edge_exist_loss
+        + lambda_exist * node_exist_loss
         + lambda_node * recon_node_loss
         + lambda_bond * recon_bond_loss
         + kl_weight * kl_loss
@@ -684,7 +732,8 @@ def compute_graph_vae_loss(
 
     return {
         "total_loss": total_loss,
-        "recon_adj_loss": recon_adj_loss,
+        "recon_adj_loss": edge_exist_loss,
+        "node_exist_loss": node_exist_loss,
         "recon_node_loss": recon_node_loss,
         "recon_bond_loss": recon_bond_loss,
         "kl_loss": kl_loss,
