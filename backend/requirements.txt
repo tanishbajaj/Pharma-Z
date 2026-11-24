@@ -34,6 +34,8 @@ opacus>=1.4
 
 # --- Blockchain ---
 web3>=6.0
+py-solc-x>=2.0          # compiles AuditTrail.sol (scripts/deploy_contract.py)
+# Local chain for development:  npx ganache --port 8545 --deterministic
 
 # --- Explainability ---
 shap>=0.44

@@ -282,11 +282,12 @@ def train_smiles_vae(
             optimizer.zero_grad()
 
             # Model forward in float16 (fast), loss in float32 (stable)
-            # word_dropout_rate=0.25: randomly mask 25% of decoder input tokens
-            # This forces the decoder to rely on latent z for reconstruction
+            # word_dropout_rate=0.15: mask 15% of decoder input tokens
+            # Reduced from 0.25 → 0.15: less aggressive = better validity
+            # Still enough to prevent posterior collapse (force z usage)
             with get_mixed_precision_context(device):
                 reconstructed_logits, mu, log_var = model(
-                    batch_input, batch_target, word_dropout_rate=0.25
+                    batch_input, batch_target, word_dropout_rate=0.15
                 )
 
             # KL annealing schedule
@@ -396,8 +397,55 @@ def generate_molecules(
     tokenizer = get_tokenizer()
 
     if model is None:
+        # Auto-discover latest checkpoint if none provided
+        if _vae_model is None and checkpoint_path is None:
+            checkpoint_dir = os.path.join(
+                settings.saved_models_dir, "smiles_vae"
+            )
+            if os.path.isdir(checkpoint_dir):
+                pt_files = [
+                    f for f in os.listdir(checkpoint_dir)
+                    if f.startswith("vae_epoch_") and f.endswith(".pt")
+                ]
+                if pt_files:
+                    # Pick highest epoch: vae_epoch_100.pt > vae_epoch_50.pt
+                    pt_files.sort(
+                        key=lambda f: int(f.replace("vae_epoch_", "").replace(".pt", "")),
+                        reverse=True,
+                    )
+                    checkpoint_path = os.path.join(checkpoint_dir, pt_files[0])
+                    logger.info(f"Auto-discovered checkpoint: {checkpoint_path}")
+
         if _vae_model is None and checkpoint_path:
-            _vae_model = initialize_vae_model()
+            # Auto-detect architecture from checkpoint
+            import torch as _torch
+            _ckpt = _torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+            _sd = _ckpt.get("model_state_dict", _ckpt)
+
+            # Detect dims:
+            # hidden_dim  → encoder.lstm.weight_hh_l0 shape[1]
+            # latent_dim  → encoder.fc_mu.bias shape[0]
+            # embedding_dim → encoder.embedding.weight shape[1]
+            _hidden_dim    = DEFAULT_HIDDEN_DIM
+            _latent_dim    = DEFAULT_LATENT_DIM
+            _embedding_dim = DEFAULT_EMBEDDING_DIM
+
+            if "encoder.lstm.weight_hh_l0" in _sd:
+                _hidden_dim = _sd["encoder.lstm.weight_hh_l0"].shape[1]
+            if "encoder.fc_mu.bias" in _sd:
+                _latent_dim = _sd["encoder.fc_mu.bias"].shape[0]
+            if "encoder.embedding.weight" in _sd:
+                _embedding_dim = _sd["encoder.embedding.weight"].shape[1]
+
+            logger.info(
+                f"Detected SMILES VAE architecture: "
+                f"hidden_dim={_hidden_dim}, latent_dim={_latent_dim}, embedding_dim={_embedding_dim}"
+            )
+            _vae_model = initialize_vae_model(
+                latent_dim=_latent_dim,
+                embedding_dim=_embedding_dim,
+                hidden_dim=_hidden_dim,
+            )
             load_model_checkpoint(_vae_model, checkpoint_path)
         model = _vae_model
 

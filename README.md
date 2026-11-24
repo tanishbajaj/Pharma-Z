@@ -37,6 +37,8 @@ Pharma-Z is a research project that integrates AI-based molecular generation, dr
 | **Privacy Engine** | Opacus (DP-SGD) | Differential privacy for model training | ✅ Implemented |
 | **Blockchain Layer** | Solidity + Ganache | Store immutable audit proofs on-chain | ✅ Implemented |
 | **Explainability** | SHAP | Explain model decisions for regulatory compliance | ✅ Implemented |
+| **Toxicity Predictor** | Masked per-assay RF (Tox21) | Screen molecules against 12 toxicity assays | ✅ Trained — 0.741 scaffold ROC-AUC |
+| **Web Interface** | React + Vite | Generate, predict, screen, rank and audit visually | ✅ Implemented |
 
 ---
 
@@ -221,9 +223,9 @@ All endpoints are served via FastAPI at `http://localhost:8000/api/v1/`.
 | `/molecules/validate` | POST | Validate & get properties |
 | `/molecules/train` | POST | Train SMILES VAE |
 | **Graph Molecule Generation** | | |
-| `/graph-molecules/train-graph` | POST | Train GraphVAE |
-| `/graph-molecules/generate-graph` | POST | Generate molecules (GraphVAE) |
-| `/graph-molecules/evaluate-graph` | POST | Evaluate generation quality |
+| `/molecules/train-graph` | POST | Train GraphVAE |
+| `/molecules/generate-graph` | POST | Generate molecules (GraphVAE) |
+| `/molecules/evaluate-graph` | POST | Evaluate generation quality |
 | **Binding Prediction** | | |
 | `/binding/predict` | POST | Predict drug-target binding |
 | `/binding/batch-predict` | POST | Batch binding predictions |
@@ -234,8 +236,9 @@ All endpoints are served via FastAPI at `http://localhost:8000/api/v1/`.
 | **Audit** | | |
 | `/audit/logs` | GET | Get audit trail |
 | **Blockchain** | | |
-| `/blockchain/store` | POST | Store audit proof on-chain |
-| `/blockchain/verify` | GET | Verify on-chain proof |
+| `/blockchain/store-hash` | POST | Store audit proof on-chain |
+| `/blockchain/verify/{record_id}` | GET | Verify on-chain proof |
+| `/blockchain/transactions` | GET | List on-chain audit records |
 
 ---
 
@@ -336,13 +339,52 @@ python scripts/train_smiles_vae.py --smiles-file data/raw/zinc_1m.csv --epochs 5
 python scripts/train_graph_vae.py --smiles-file data/raw/zinc_1m.csv --epochs 50
 ```
 
-### 4. Run API Server
+### 4. Build the Frontend
 
 ```bash
+cd frontend
+npm install
+npm run build
+```
+
+This produces `frontend/dist/`, which the FastAPI app serves at `/`. Fonts and
+the 2D structure renderer are bundled locally, so the interface works with no
+internet connection.
+
+For frontend development with hot reload (API calls proxy to port 8000):
+
+```bash
+npm run dev     # http://localhost:5173
+```
+
+### 5. Run API Server
+
+```bash
+cd backend
 uvicorn app.main:app --reload
 ```
 
-Open [http://localhost:8000/docs](http://localhost:8000/docs) for the Swagger API.
+- [http://localhost:8000](http://localhost:8000) — the Pharma-Z interface
+- [http://localhost:8000/docs](http://localhost:8000/docs) — Swagger API
+
+### 6. Blockchain Audit Trail (optional)
+
+The ledger view needs a local chain. In a separate terminal:
+
+```bash
+npx ganache --port 8545 --deterministic
+```
+
+Then compile, deploy, and verify end to end:
+
+```bash
+cd backend
+python scripts/deploy_contract.py        # writes CONTRACT_ADDRESS into .env
+python scripts/test_blockchain_e2e.py    # 29 checks incl. tamper detection
+```
+
+Ganache is in-memory, so a restart wipes the chain and requires redeploying.
+Add `--db ./ganache_db` to persist it between runs.
 
 ---
 

@@ -507,11 +507,20 @@ def predict_binding_affinity(
 
     if model is None:
         if _dta_model is None:
-            if checkpoint_path:
-                _dta_model = initialize_dta_model()
-                load_model_checkpoint(_dta_model, checkpoint_path)
-            else:
-                raise ValueError("No model available. Train first or provide checkpoint.")
+            # Auto-find best checkpoint if none specified
+            if checkpoint_path is None:
+                from app.config import settings
+                baseline_path = os.path.join(settings.saved_models_dir, "deep_dta", "best_model.pt")
+                esm_path = os.path.join(settings.saved_models_dir, "deep_dta_esm", "best_model.pt")
+                if os.path.exists(baseline_path):
+                    checkpoint_path = baseline_path
+                elif os.path.exists(esm_path):
+                    checkpoint_path = esm_path
+                else:
+                    raise ValueError("No model available. Train first or provide checkpoint.")
+
+            _dta_model = initialize_dta_model()
+            load_model_checkpoint(_dta_model, checkpoint_path)
         model = _dta_model
 
     device = next(model.parameters()).device
@@ -524,13 +533,18 @@ def predict_binding_affinity(
         [encode_protein_sequence(protein_sequence)], dtype=torch.long, device=device
     )
 
+    # KIBA score range is [0, 17.2] — clamp raw model output to valid range
+    KIBA_MIN, KIBA_MAX = 0.0, 17.2
+
     with torch.no_grad():
         predicted_score = model(drug_encoded, protein_encoded)
+        predicted_score = float(predicted_score.item())
+        predicted_score = max(KIBA_MIN, min(KIBA_MAX, predicted_score))
 
     return {
         "drug_smiles": drug_smiles,
         "protein_sequence": protein_sequence[:50] + "..." if len(protein_sequence) > 50 else protein_sequence,
-        "binding_affinity_score": round(float(predicted_score.item()), 4),
+        "binding_affinity_score": round(predicted_score, 4),
     }
 
 

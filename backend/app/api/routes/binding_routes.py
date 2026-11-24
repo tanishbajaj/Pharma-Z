@@ -264,14 +264,14 @@ async def get_model_info():
 # ---------------------------------------------------------------------------
 
 def _find_best_checkpoint() -> str:
-    """Find the best available checkpoint (prefer ESM over baseline)."""
-    # Prefer ESM model if available
-    esm_path = os.path.join(settings.saved_models_dir, "deep_dta_esm", "best_model.pt")
-    if os.path.exists(esm_path):
-        return esm_path
-
+    """Find the best available checkpoint (prefer baseline DeepDTA over ESM locally)."""
+    # Prefer baseline model — ESM checkpoint requires a different model class
     baseline_path = os.path.join(settings.saved_models_dir, "deep_dta", "best_model.pt")
     if os.path.exists(baseline_path):
         return baseline_path
+
+    esm_path = os.path.join(settings.saved_models_dir, "deep_dta_esm", "best_model.pt")
+    if os.path.exists(esm_path):
+        return esm_path
 
     raise FileNotFoundError("No trained binding affinity model found.")

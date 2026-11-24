@@ -50,3 +50,15 @@ npm-debug.log
 
 # nohup
 nohup.out
+
+# Frontend (Node)
+node_modules/
+frontend/dist/
+npm-debug.log*
+.vite/
+
+# Impeccable runtime (keep PRODUCT.md, surfaces/ and design.json)
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/questions/
+.impeccable/sketches/
