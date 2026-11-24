@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-24T00:00:00Z",
+  "title": "Design System: Pharma-Z",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Near Black", "canonical": "#12110F", "tonalRamp": ["#292724", "#48453F", "#686359", "#898173", "#A49E92", "#BEBAB2", "#D8D6D2", "#F3F3F1"] },
+      "ground-2": { "role": "neutral", "displayName": "Charcoal", "canonical": "#1A1916", "tonalRamp": ["#282724", "#48463F", "#67645A", "#888374", "#A39F93", "#BDBBB3", "#D8D6D2", "#F3F3F2"] },
+      "ground-3": { "role": "neutral", "displayName": "Warm Charcoal", "canonical": "#221F1B", "tonalRamp": ["#292723", "#49443D", "#6A6257", "#8B8070", "#A69C90", "#BFB9B1", "#D9D6D1", "#F3F2F1"] },
+      "ink": { "role": "neutral", "displayName": "Bone", "canonical": "#F2EFE6", "tonalRamp": ["#2E2A1E", "#544C33", "#7B6E46", "#A49158", "#B9AA7D", "#CBC2A5", "#DFDACB", "#F5F4F0"] },
+      "ink-2": { "role": "neutral", "displayName": "Stone", "canonical": "#B8B3A4", "tonalRamp": ["#292823", "#4A473D", "#6B6656", "#8C856F", "#A7A18F", "#C0BCB0", "#D9D7D1", "#F3F3F1"] },
+      "ink-3": { "role": "neutral", "displayName": "Ash", "canonical": "#9D978A", "tonalRamp": ["#292724", "#48453F", "#686359", "#888273", "#A39E92", "#BDBAB3", "#D8D6D2", "#F3F3F1"] },
+      "rule": { "role": "neutral", "displayName": "Hairline", "canonical": "#5A5349", "tonalRamp": ["#292724", "#49443E", "#696258", "#8A8071", "#A59D91", "#BEB9B2", "#D8D6D2", "#F3F2F1"] },
+      "rule-2": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "#7A7163", "tonalRamp": ["#292724", "#49453E", "#696258", "#8A8071", "#A59D91", "#BEB9B2", "#D8D6D2", "#F3F2F1"] },
+      "gen": { "role": "primary", "displayName": "Chrome Yellow", "canonical": "#E4C200", "tonalRamp": ["#40380D", "#776810", "#B49B0E", "#F5D206", "#FADE3B", "#F5E37B", "#F5ECB5", "#FBF8EA"] },
+      "bind": { "role": "secondary", "displayName": "Cobalt", "canonical": "#1E6FD9", "tonalRamp": ["#13243A", "#1C3E6A", "#22589F", "#2372D8", "#5391E3", "#8AB2E6", "#BDD2ED", "#ECF1F9"] },
+      "tox": { "role": "secondary", "displayName": "Vermilion", "canonical": "#C8402F", "tonalRamp": ["#361A16", "#632B23", "#94392D", "#C84433", "#D66D60", "#DE9B92", "#E9C6C1", "#F8EEED"] },
+      "rank": { "role": "secondary", "displayName": "Deep Green", "canonical": "#2A7F52", "tonalRamp": ["#193325", "#295D42", "#378A5E", "#41BA7A", "#6BCB98", "#99D7B6", "#C5E5D4", "#EEF7F2"] },
+      "gen-ink": { "role": "neutral", "displayName": "Ink on Chrome Yellow", "canonical": "#12110F", "tonalRamp": ["#292724", "#48453F", "#686359", "#898173", "#A49E92", "#BEBAB2", "#D8D6D2", "#F3F3F1"] },
+      "bind-ink": { "role": "neutral", "displayName": "Ink on Cobalt", "canonical": "#FFFFFF", "tonalRamp": ["#262626", "#434343", "#616161", "#7E7E7E", "#9B9B9B", "#B8B8B8", "#D5D5D5", "#F2F2F2"] },
+      "tox-ink": { "role": "neutral", "displayName": "Ink on Vermilion", "canonical": "#FFFFFF", "tonalRamp": ["#262626", "#434343", "#616161", "#7E7E7E", "#9B9B9B", "#B8B8B8", "#D5D5D5", "#F2F2F2"] },
+      "rank-ink": { "role": "neutral", "displayName": "Ink on Deep Green", "canonical": "#FFFFFF", "tonalRamp": ["#262626", "#434343", "#616161", "#7E7E7E", "#9B9B9B", "#B8B8B8", "#D5D5D5", "#F2F2F2"] }
+    },
+    "contrast": {
+      "ink/ground": "16.4:1",
+      "ink-2/ground": "9.0:1",
+      "ink-3/ground": "6.5:1",
+      "rule-2/ground": "3.9:1",
+      "rule/ground": "2.5:1 — a decorative grid hairline, lifted from #332F29 for projector legibility; not a text pairing",
+      "gen-ink/gen": "10.8:1",
+      "bind-ink/bind": "4.85:1",
+      "tox-ink/tox": "4.96:1",
+      "rank-ink/rank": "4.93:1 (the #2E8B5A first committed measured 4.24:1)"
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Figure", "purpose": "One headline number per detail panel — affinity, final score, record count. Never two in a panel." },
+      "headline": { "displayName": "Headline", "purpose": "The wordmark and the four live legend counts; read first and from furthest away." },
+      "title": { "displayName": "Section Title", "purpose": "View headings and detail-column headings, uppercase." },
+      "body": { "displayName": "Body", "purpose": "Running prose, table cells, row values. Explanatory paragraphs cap at 46ch." },
+      "label": { "displayName": "Label", "purpose": "Field labels, table headers, units, legend labels, tags. Uppercase, widely tracked." },
+      "button": { "displayName": "Button", "purpose": "Every button label: condensed, uppercase, 0.08em." },
+      "nav": { "displayName": "Nav Item", "purpose": "The left rail's five work-area labels." },
+      "data": { "displayName": "Machine String", "purpose": "SMILES, SHA-256 digests, addresses, indices — anything to be read character by character." }
+    },
+    "shadows": [
+      { "name": "none", "value": "none", "purpose": "The system has no drop shadows, blurs or glows. Depth is tonal (three near-black grounds) plus hairline rules." },
+      { "name": "ring-selected-cell", "value": "inset 0 0 0 2px var(--ink)", "purpose": "The chosen candidate in the chart, drawn on a pseudo-element so layout never shifts." },
+      { "name": "ring-active-stage", "value": "inset 0 0 0 4px var(--ink)", "purpose": "The live category filter in the legend bar; the block keeps its hue." },
+      { "name": "ring-neutral-tag", "value": "inset 0 0 0 1px var(--rule-2)", "purpose": "Edges the unclassified tag without a fill that would read as a fifth category." },
+      { "name": "focus-ring", "value": "outline: 2px solid var(--gen); outline-offset: 2px", "purpose": "The single focus treatment for every interactive element in the system." }
+    ],
+    "motion": [
+      { "name": "settle", "value": "settle 0.34s cubic-bezier(0.16, 1, 0.3, 1) both — from { opacity: 0.35; transform: translateY(5px) }", "purpose": "The one authored entrance. Candidate cells arrive from an already-visible default on an exponential ease-out, staggered 10ms per cell and capped at the 40th." },
+      { "name": "sweep", "value": "sweep 1.1s ease-in-out infinite — translateX(-100%) to translateX(380%)", "purpose": "Functional progress feedback on a 3px track while model inference runs; inference takes seconds to tens of seconds, so the bar is content." },
+      { "name": "step", "value": "0.18s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "The shared state transition for every hover, filter and selection change." },
+      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) { .cell { animation: none } .bar i { animation: none; width: 100% } * { transition-duration: 0.01ms !important } }", "purpose": "Complete reduced-motion block: entrance removed, sweep frozen to a full bar, transitions collapsed." }
+    ],
+    "breakpoints": [
+      { "name": "rail-collapse", "value": "1100px" },
+      { "name": "stack", "value": "820px" }
+    ],
+    "browserSurfaces": [
+      { "name": "selection", "value": "::selection { background: var(--gen); color: var(--gen-ink) }" },
+      { "name": "scrollbar", "value": "::-webkit-scrollbar { width: 11px; height: 11px } ::-webkit-scrollbar-track { background: var(--ground) } ::-webkit-scrollbar-thumb { background: var(--rule-2); border: 3px solid var(--ground) } ::-webkit-scrollbar-thumb:hover { background: var(--ink-3) } * { scrollbar-color: var(--rule-2) var(--ground); scrollbar-width: thin }" },
+      { "name": "caret", "value": "input, select, button, textarea { caret-color: var(--gen) }" },
+      { "name": "viewport-chrome", "value": "<meta name=\"color-scheme\" content=\"dark\"> <meta name=\"theme-color\" content=\"#12110F\">" },
+      { "name": "numerals", "value": "body { font-variant-numeric: tabular-nums }" }
+    ],
+    "atomPalette": {
+      "purpose": "Fixed element colours for the bundled 2D structure renderer, drawn on a transparent background so the cell's ground shows through.",
+      "C": "#F2EFE6 (aliases colors.ink)",
+      "N": "#4A90E8",
+      "O": "#E85A47",
+      "S": "#E4C200 (aliases colors.gen)",
+      "F": "#45B37B",
+      "CL": "#45B37B",
+      "BR": "#C98A3A",
+      "I": "#A97BD6",
+      "P": "#E4A020",
+      "B": "#B8B3A4 (aliases colors.ink-2)",
+      "SI": "#B8B3A4 (aliases colors.ink-2)",
+      "H": "#B8B3A4 (aliases colors.ink-2)",
+      "BACKGROUND": "transparent",
+      "drawing": "bondThickness 1.1, bondLength 15, padding 4, terminalCarbons off, explicitHydrogens off, compactDrawing off"
+    },
+    "offline": {
+      "fonts": ["/fonts/archivo-narrow.woff2", "/fonts/archivo.woff2"],
+      "note": "Both faces are self-hosted woff2 (weight 400–700, font-display swap) and preloaded; the structure renderer is bundled by Vite. Nothing essential is fetched from a CDN, because the demo may run with no network."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one bright action in a panel — Generate, Run pipeline, Screen, Store on chain.",
+      "html": "<button class=\"ds-btn\">RUN PIPELINE</button>",
+      "css": ".ds-btn { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 10px 20px; border: 2px solid var(--ink, #F2EFE6); background: var(--ink, #F2EFE6); color: var(--ground, #12110F); border-radius: 0; cursor: pointer; white-space: nowrap; transition: background 0.18s cubic-bezier(0.22,1,0.36,1), color 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-btn:hover:not(:disabled) { background: var(--gen, #E4C200); border-color: var(--gen, #E4C200); color: var(--gen-ink, #12110F); } .ds-btn:focus-visible { outline: 2px solid var(--gen, #E4C200); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions — clear filter, tamper, verify, record on chain. Inverts to a bone fill on hover.",
+      "html": "<button class=\"ds-btn-ghost\">RECORD ON CHAIN</button>",
+      "css": ".ds-btn-ghost { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 10px 20px; border: 2px solid var(--ink, #F2EFE6); background: none; color: var(--ink, #F2EFE6); border-radius: 0; cursor: pointer; white-space: nowrap; transition: background 0.18s cubic-bezier(0.22,1,0.36,1), color 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-btn-ghost:hover:not(:disabled) { background: var(--ink, #F2EFE6); color: var(--ground, #12110F); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--gen, #E4C200); outline-offset: 2px; } .ds-btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Legend Stage Block",
+      "kind": "custom",
+      "refersTo": "legend-stage-binding",
+      "description": "Signature. Four equal blocks span the top bar, each entirely filled with its category colour, each a live filter over the candidate chart. The active one keeps its hue and gains a 4px inset bone ring plus a currentColor underline.",
+      "html": "<div class=\"ds-legend\"><button class=\"ds-stage ds-stage-gen\"><span class=\"ds-stage-count\">16</span><span class=\"ds-stage-label\">Generated</span></button><button class=\"ds-stage ds-stage-bind ds-stage-on\"><span class=\"ds-stage-count\">16</span><span class=\"ds-stage-label\">Binding &#8805; 8.0</span></button><button class=\"ds-stage ds-stage-tox\"><span class=\"ds-stage-count\">2</span><span class=\"ds-stage-label\">Flagged toxic</span></button><button class=\"ds-stage ds-stage-rank\"><span class=\"ds-stage-count\">0</span><span class=\"ds-stage-label\">Ranked</span></button></div>",
+      "css": ".ds-legend { display: flex; min-height: 74px; border-bottom: 2px solid var(--ink, #F2EFE6); } .ds-stage { flex: 1 1 0; min-width: 0; border: none; border-right: 1px solid var(--ground, #12110F); padding: 10px 16px; text-align: left; cursor: pointer; display: flex; flex-direction: column; justify-content: center; position: relative; border-radius: 0; transition: box-shadow 0.18s cubic-bezier(0.22,1,0.36,1), filter 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-stage:hover { filter: brightness(1.12); } .ds-stage:focus-visible { outline: 2px solid var(--gen, #E4C200); outline-offset: 2px; } .ds-stage-gen { background: var(--gen, #E4C200); color: var(--gen-ink, #12110F); } .ds-stage-bind { background: var(--bind, #1E6FD9); color: var(--bind-ink, #FFFFFF); } .ds-stage-tox { background: var(--tox, #C8402F); color: var(--tox-ink, #FFFFFF); } .ds-stage-rank { background: var(--rank, #2A7F52); color: var(--rank-ink, #FFFFFF); } .ds-stage-on { box-shadow: inset 0 0 0 4px var(--ink, #F2EFE6); } .ds-stage-on::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 6px; height: 2px; background: currentColor; } .ds-stage-count { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .ds-stage-label { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
+    },
+    {
+      "name": "Candidate Cell",
+      "kind": "card",
+      "refersTo": "chart-cell",
+      "description": "Signature. The wall chart's unit: no fill at rest, hairline right and bottom rules, identical furniture in identical positions, and a 6px verdict bar flush along the bottom edge in the colour of the furthest stage reached.",
+      "html": "<div class=\"ds-chart\"><button class=\"ds-cell\"><span class=\"ds-cell-idx\">001</span><span class=\"ds-cell-score\">9.04</span><span class=\"ds-cell-struct\"><svg viewBox=\"0 0 60 40\" width=\"100%\" height=\"100%\" fill=\"none\" stroke=\"#F2EFE6\" stroke-width=\"1.1\"><path d=\"M8 26 18 20 28 26 38 20 48 26\"/><path d=\"M18 20 18 10\"/><path d=\"M38 20 38 10\"/></svg></span><span class=\"ds-cell-formula\">MW 247.2</span><span class=\"ds-cell-verdict\"></span></button><button class=\"ds-cell ds-cell-sel\"><span class=\"ds-cell-idx\">002</span><span class=\"ds-cell-score\">9.64</span><span class=\"ds-cell-struct\"><svg viewBox=\"0 0 60 40\" width=\"100%\" height=\"100%\" fill=\"none\" stroke=\"#F2EFE6\" stroke-width=\"1.1\"><path d=\"M10 14 22 14 28 24 22 34 10 34 4 24Z\"/><path d=\"M28 24 44 24\"/></svg></span><span class=\"ds-cell-formula\">MW 262.4</span><span class=\"ds-cell-verdict ds-v-bind\"></span></button></div>",
+      "css": ".ds-chart { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); border-top: 1px solid var(--rule, #5A5349); border-left: 1px solid var(--rule, #5A5349); } .ds-cell { position: relative; border: none; border-right: 1px solid var(--rule, #5A5349); border-bottom: 1px solid var(--rule, #5A5349); border-radius: 0; padding: 7px 8px 13px; min-height: 132px; display: flex; flex-direction: column; background: none; text-align: left; cursor: pointer; color: var(--ink, #F2EFE6); transition: background 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-cell:hover { background: var(--ground-2, #1A1916); } .ds-cell:focus-visible { outline: 2px solid var(--gen, #E4C200); outline-offset: 2px; } .ds-cell-sel { background: var(--ground-3, #221F1B); } .ds-cell-sel::before { content: ''; position: absolute; inset: 0; border: 2px solid var(--ink, #F2EFE6); pointer-events: none; } .ds-cell-idx { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--ink-3, #9D978A); letter-spacing: 0.04em; } .ds-cell-score { position: absolute; top: 7px; right: 8px; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-cell-struct { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 62px; padding: 3px 0; } .ds-cell-formula { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--ink-2, #B8B3A4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-cell-verdict { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--rule-2, #7A7163); } .ds-v-bind { background: var(--bind, #1E6FD9); } @keyframes ds-settle { from { opacity: 0.35; transform: translateY(5px); } to { opacity: 1; transform: none; } } .ds-cell { animation: ds-settle 0.34s cubic-bezier(0.16, 1, 0.3, 1) both; } @media (prefers-reduced-motion: reduce) { .ds-cell { animation: none; } }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Every control in the panel row: an uppercase ash label stacked over a square charcoal field with a hairline border and monospace value text.",
+      "html": "<label class=\"ds-field\"><span>SMILES</span><input value=\"CC(=O)Oc1ccccc1C(=O)O\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; } .ds-field > span { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3, #9D978A); } .ds-field input { background: var(--ground-2, #1A1916); border: 1px solid var(--rule-2, #7A7163); border-radius: 0; padding: 8px 10px; color: var(--ink, #F2EFE6); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; min-width: 0; caret-color: var(--gen, #E4C200); } .ds-field input:hover { border-color: var(--ink-3, #9D978A); } .ds-field input:focus-visible { outline: 2px solid var(--gen, #E4C200); outline-offset: 2px; } .ds-field input::placeholder { color: var(--ink-3, #9D978A); }"
+    },
+    {
+      "name": "Nav Rail",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "The left rail's five work areas. Drawn 18px icons at 1.6 stroke beside condensed uppercase labels; the active item fills chrome yellow, the same accent every live control uses.",
+      "html": "<nav class=\"ds-rail\"><button class=\"ds-rail-item ds-rail-on\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"2\" width=\"5.5\" height=\"5.5\"/><rect x=\"10.5\" y=\"2\" width=\"5.5\" height=\"5.5\"/><rect x=\"2\" y=\"10.5\" width=\"5.5\" height=\"5.5\"/><rect x=\"10.5\" y=\"10.5\" width=\"5.5\" height=\"5.5\"/></svg><span>Candidates</span></button><button class=\"ds-rail-item\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"4.6\" cy=\"9\" r=\"2.6\"/><circle cx=\"13.4\" cy=\"9\" r=\"2.6\"/><path d=\"M7.2 9h3.6\"/></svg><span>Binding</span></button><button class=\"ds-rail-item\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 1.8 15 4v4.6c0 3.7-2.5 6.5-6 7.6-3.5-1.1-6-3.9-6-7.6V4Z\"/><path d=\"M6.6 9 8.4 11 11.6 7\"/></svg><span>Toxicity</span></button></nav>",
+      "css": ".ds-rail { width: 190px; border-right: 2px solid var(--ink, #F2EFE6); padding-top: 14px; } .ds-rail-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; background: none; border: none; border-radius: 0; color: var(--ink-2, #B8B3A4); font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-align: left; transition: background 0.18s cubic-bezier(0.22,1,0.36,1), color 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-rail-item:hover { background: var(--ground-2, #1A1916); color: var(--ink, #F2EFE6); } .ds-rail-item:focus-visible { outline: 2px solid var(--gen, #E4C200); outline-offset: 2px; } .ds-rail-on { background: var(--gen, #E4C200); color: var(--gen-ink, #12110F); font-weight: 700; } .ds-rail-item svg { flex: none; }"
+    },
+    {
+      "name": "Verdict Tag",
+      "kind": "chip",
+      "refersTo": "tag-generated",
+      "description": "The verdict column in every table. Solid category colour, square, one per row. The neutral variant is warm charcoal with a hairline inset ring, so 'not classified' never reads as a fifth category.",
+      "html": "<span class=\"ds-tag ds-tag-gen\">Generated</span> <span class=\"ds-tag ds-tag-none\">Not classified</span>",
+      "css": ".ds-tag { display: inline-block; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 0; } .ds-tag-gen { background: var(--gen, #E4C200); color: var(--gen-ink, #12110F); } .ds-tag-none { background: var(--ground-3, #221F1B); color: var(--ink, #F2EFE6); box-shadow: inset 0 0 0 1px var(--rule-2, #7A7163); }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "table-header-cell",
+      "description": "The tabular view used by Binding, Toxicity, Pipeline and Ledger. Sticky uppercase ash headers over hairline-divided rows; figures set in condensed 700 so numbers outweigh their labels.",
+      "html": "<table class=\"ds-tbl\"><thead><tr><th style=\"width:54px\">#</th><th>SMILES</th><th style=\"width:110px\">Affinity</th></tr></thead><tbody><tr><td class=\"ds-mono\">001</td><td class=\"ds-mono\">CC(=O)Oc1ccccc1C(=O)O</td><td class=\"ds-num\">9.04</td></tr><tr><td class=\"ds-mono\">002</td><td class=\"ds-mono\">Cc1nc(F)ccc1NC(=O)c1cc(=O)cc[nH]1</td><td class=\"ds-num\">8.65</td></tr></tbody></table>",
+      "css": ".ds-tbl { width: 100%; border-collapse: collapse; font-family: Archivo, system-ui, sans-serif; font-variant-numeric: tabular-nums; } .ds-tbl th { text-align: left; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3, #9D978A); padding: 10px 14px; border-bottom: 1px solid var(--rule-2, #7A7163); background: var(--ground, #12110F); position: sticky; top: 0; } .ds-tbl td { padding: 11px 14px; border-bottom: 1px solid var(--rule, #5A5349); font-size: 14px; color: var(--ink, #F2EFE6); } .ds-tbl tbody tr:hover { background: var(--ground-2, #1A1916); } .ds-mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; } .ds-num { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 16px; }"
+    },
+    {
+      "name": "Detail Figure",
+      "kind": "custom",
+      "refersTo": "display",
+      "description": "The detail column's headline number at 62px, with its uppercase unit beneath. When there is no value yet it states so in words at 21px — an em-dash at display size reads as a white bar, not as an absent number.",
+      "html": "<div class=\"ds-figure\"><div class=\"ds-figure-n\">9.04</div><div class=\"ds-figure-u\">KIBA affinity</div></div><div class=\"ds-figure\"><div class=\"ds-figure-none\">Nothing scored yet</div><div class=\"ds-figure-u\">Strong binders</div></div>",
+      "css": ".ds-figure { margin-bottom: 20px; color: var(--ink, #F2EFE6); } .ds-figure-n { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 62px; font-weight: 700; line-height: 0.95; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; } .ds-figure-none { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 21px; font-weight: 600; color: var(--ink-3, #9D978A); letter-spacing: 0.02em; line-height: 1.25; } .ds-figure-u { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3, #9D978A); margin-top: 3px; }"
+    },
+    {
+      "name": "Note and Progress Bar",
+      "kind": "custom",
+      "refersTo": "note",
+      "description": "Result and error feedback: a charcoal block marked by a single 1px left border, vermilion when it failed and green when it verified. The 3px sweep above it runs while a model is working.",
+      "html": "<div class=\"ds-bar\"><i></i></div><div class=\"ds-note\"><strong>Stored.</strong> Record #12 in block 48.</div><div class=\"ds-note ds-note-err\"><strong>Chain unavailable.</strong> Could not reach the node.</div>",
+      "css": ".ds-note { padding: 13px 16px; font-family: Archivo, system-ui, sans-serif; font-size: 14px; border-left: 1px solid var(--rule-2, #7A7163); background: var(--ground-2, #1A1916); color: var(--ink-2, #B8B3A4); margin: 18px 0; } .ds-note strong { color: var(--ink, #F2EFE6); font-weight: 600; } .ds-note-err { border-left-color: var(--tox, #C8402F); color: var(--ink, #F2EFE6); } .ds-bar { height: 3px; background: var(--rule-2, #7A7163); overflow: hidden; } .ds-bar i { display: block; height: 100%; background: var(--gen, #E4C200); width: 36%; animation: ds-sweep 1.1s ease-in-out infinite; } @keyframes ds-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(380%); } } @media (prefers-reduced-motion: reduce) { .ds-bar i { animation: none; width: 100%; } }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "body",
+      "description": "Every empty region says what to do next: a 21px uppercase condensed heading over a 46ch paragraph. Never a bare 'no data'.",
+      "html": "<div class=\"ds-empty\"><h3>No candidates yet</h3><p>Generate a batch to populate the chart. Each molecule becomes a cell; its colour bar records how far it travelled through the pipeline.</p></div>",
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 50px 22px; color: var(--ink-3, #9D978A); text-align: center; font-family: Archivo, system-ui, sans-serif; } .ds-empty h3 { font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 21px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2, #B8B3A4); margin: 0; } .ds-empty p { max-width: 46ch; font-size: 14px; line-height: 1.6; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Periodic Table Wall Chart",
+    "overview": "Pharma-Z is a wall chart, not a dashboard. Two thousand candidates are classified at once on a single near-black field, and the classification *is* the layout: a flat category colour tells you how far a molecule travelled through the pipeline, and the grid of cells is the argument. Nothing floats on a card. There is no stat row hovering above a table, because that arrangement separates the number from the molecule that produced it.\n\nThe material is unmodulated. No gradient appears anywhere in the system, no surface is rounded, and depth is carried entirely by three near-black grounds and a hairline grid. Colour is never an accent sprinkled on grey — each of the four category colours fills a whole legend block edge to edge, and the same colour reappears as a 6px bar, a stage marker, and a table tag so a viewer learns the code once. Condensed grotesk at wall-chart density does the rest: tight, capitalised, numeric, with tabular figures so columns of scores line up as a reading surface.\n\nEverything is sized for a projector in a lit room, not for a laptop at arm's length. That single constraint set the hairline rules a step brighter than on-screen taste would choose, pushed the muted inks up the contrast scale, and darkened the ranked green one step so white ink on it clears 4.5:1. The surface also ships self-contained — both typefaces and the 2D structure renderer are bundled, because the demo may run with no network at the moment of truth.",
+    "keyCharacteristics": [
+      "Classification by colour: four category colours each own a pipeline stage.",
+      "Flat and unmodulated — zero gradients, zero corner radii, no drop shadows.",
+      "Hairline grid rules carry the chart; cells have no fill at rest.",
+      "Condensed grotesk at wall-chart density with tabular figures throughout.",
+      "Browser chrome is themed, not inherited: selection, scrollbar, caret, focus.",
+      "One authored entrance moment; everything else is a 0.18s state transition.",
+      "Self-hosted faces and a bundled renderer — the whole surface works offline."
+    ],
+    "rules": [
+      { "name": "The Classification Rule", "body": "A category colour means one pipeline stage, everywhere it appears — legend block, 6px cell verdict bar, table tag, pipeline stage marker. A category colour is never used for emphasis, mood, or ornament.", "section": "colors" },
+      { "name": "The Region Rule", "body": "Colour owns whole regions. A category colour fills a block, a bar, or a tag; it is not an outline on a grey card or a dot beside a label. The only non-region uses in the system are the 1px coloured left border on a result note and a single coloured number or verdict word in the detail column.", "section": "colors" },
+      { "name": "The Paired Ink Rule", "body": "Every category colour has a paired ink token chosen to clear 4.5:1 on it, and coloured regions use that pairing: near-black on yellow (10.8:1), white on cobalt (4.85:1), vermilion (4.96:1) and green (4.93:1). The ranked green ships at one step darker than the hue first committed precisely to make that pairing clear.", "section": "colors" },
+      { "name": "The Projector Rule", "body": "Hairline rules and muted inks are set for legibility at projector distance, not for on-screen subtlety. A rule that looks slightly too present on a laptop is correct; one that disappears in a lit room is not.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "font-variant-numeric: tabular-nums is set on the body and inherited everywhere. Numbers in a column line up by digit; a score that shifts as it updates is a bug.", "section": "typography" },
+      { "name": "The One Big Number Rule", "body": "The 62px display size is reserved for the single most consequential figure in a panel. When that figure has no value yet, the panel says so in words at 21px — an em-dash at display size reads as a white bar, not as an absent number.", "section": "typography" },
+      { "name": "The Machine-String Rule", "body": "Anything the machine produced verbatim — SMILES, SHA-256 digests, wallet addresses, assay names — is set in the data face. Prose about them is not.", "section": "typography" },
+      { "name": "The Fixed Furniture Rule", "body": "Every cell carries the same four facts in the same four positions — index top-left, score top-right, structure centred, formula along the bottom, verdict bar on the bottom edge. A molecule that could not be parsed still fills all five slots. Comparison across the chart must cost no eye travel.", "section": "layout" },
+      { "name": "The Flat Material Rule", "body": "No gradient, no drop shadow, no blur, no glow, ever. If something needs to come forward, it changes ground tone or gains a ring.", "section": "elevation" },
+      { "name": "The One Entrance Rule", "body": "settle is the system's only authored entrance: 0.34s on cubic-bezier(0.16, 1, 0.3, 1) from an already-visible default (opacity 0.35, 5px down), staggered 10ms per cell and capped at the 40th, so a large batch finishes arriving. Nothing else in the system animates on arrival.", "section": "components" }
+    ],
+    "dos": [
+      "Do let a category colour mean exactly one pipeline stage, in every place it appears.",
+      "Do fill whole regions with colour — a block, a 6px bar, a tag — rather than outlining or dotting.",
+      "Do use the paired ink token on every coloured region: near-black on yellow, white on cobalt, vermilion and green.",
+      "Do keep every corner square (0 radius) and every surface flat.",
+      "Do carry structure with the two-weight border vocabulary: 2px bone for shell divisions, 1px hairline inside.",
+      "Do set every machine-produced string in the monospace data face, and keep tabular-nums on everything numeric.",
+      "Do reserve the 62px display size for one figure per panel, and write words rather than an em-dash when that figure has no value yet.",
+      "Do theme the browser's own surfaces — selection, scrollbar, caret, focus ring — rather than inheriting defaults.",
+      "Do show what is running and on how many molecules; latency is content.",
+      "Do bundle every font and renderer the surface needs. The demo may be offline.",
+      "Do keep every cell's furniture identical and in identical positions."
+    ],
+    "donts": [
+      "Don't use a gradient, a drop shadow, a blur or a glow anywhere. Flat inset rings are the only box-shadow this system permits.",
+      "Don't round a corner.",
+      "Don't introduce a fifth category colour, or reuse an existing one for emphasis, mood or ornament.",
+      "Don't set category colour as small body text or as a thin outline on a grey surface — at these hues that lands near 3.8:1 on the ground and the system's own paired-ink pairing is the correct device.",
+      "Don't darken the hairline rules for on-screen subtlety; they are tuned for projector distance.",
+      "Don't put stat cards above a table, or let a number appear detached from the molecule that produced it.",
+      "Don't use a glyph, emoji or icon font. Icons are drawn at 18px / 1.6 stroke.",
+      "Don't add a second entrance animation, or animate anything on arrival other than the candidate cells.",
+      "Don't fetch a font, an icon set or a renderer from a CDN.",
+      "Don't show a bare empty state; say what to do next."
+    ]
+  }
+}

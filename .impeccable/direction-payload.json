@@ -1,0 +1,137 @@
+{
+  "title": "Choose the visual world for Pharma-Z",
+  "question": "The roll assigned the Periodic Table Wall Chart. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "Periodic Table Wall Chart",
+      "kicker": "THE ROLL",
+      "lineage": "the classroom element chart every engineering student has read across a room",
+      "thesis": "A screen of drug candidates is a periodic table of candidates: every molecule is a data cell, and colour is classification, not decoration.",
+      "palette": ["#12110F", "#F2EFE6", "#E4C200", "#1E6FD9", "#C8402F", "#2E8B5A"],
+      "materials": ["flat category fills", "condensed grotesk", "hairline cell rules"],
+      "viewport": "A live legend bar across the top carries the four pipeline stages as saturated category blocks with live counts. A narrow rail holds navigation. The body is a dense grid of candidate cells: index top-left, drawn 2D structure as the cell's symbol, formula beneath, score top-right, and a 6px colour bar encoding pipeline verdict. A right column holds the selected molecule's target, affinity and ledger hash.",
+      "risk": "Dense by design. If the cell grid is not perfectly aligned it reads as clutter rather than a chart, and it demands real data to look right.",
+      "raised": [
+        {
+          "from": "challenger-character-goods",
+          "raise": "Every cell carries identical fixed furniture in identical positions, so comparison across candidates costs no eye travel."
+        },
+        {
+          "from": "challenger-zoo-map",
+          "raise": "Colour is flat and unmodulated and owns whole regions. No gradient appears anywhere in the system."
+        }
+      ],
+      "html": ".impeccable/sketches/assigned.html",
+      "htmlFrame": "1440x900"
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "Pharmacopoeia Monograph",
+      "kicker": "IMPECCABLE'S PICK",
+      "lineage": "the printed drug standard: numbered clauses, tables of limits",
+      "thesis": "Each candidate is published as a monograph entry, where every measured value sits beside the limit it must meet.",
+      "palette": ["#FBFAF7", "#17160F", "#A4152B", "#F0EDE4"],
+      "materials": ["ruled tables", "clause numbering", "double-ruled stamp"],
+      "viewport": "A ruled masthead names the candidate and revision. A clause index runs down the left. The centre column sets numbered clauses and a limits table where out-of-spec values print in red. The right column carries assay values and a double-ruled ON CHAIN stamp.",
+      "risk": "Also where a careful run in this category most often lands: serif, ruled, document-like. Familiar is the trade.",
+      "html": ".impeccable/sketches/pick.html",
+      "htmlFrame": "1440x900"
+    },
+    {
+      "id": "challenger-splitflap",
+      "kind": "challenger",
+      "catalogId": "signals-instruments-split-flap-concourse",
+      "label": "Split-Flap Concourse Board",
+      "verdict": "competitive",
+      "lineage": "rail concourse departure boards at rush hour",
+      "thesis": "Ranked candidates as a departures board: rows are live entities, and a value that changes cascades character by character.",
+      "palette": ["#0B0C0D", "#FFFFFF", "#8A8F94", "#F0A202", "#D14B4B", "#5FD068"],
+      "materials": ["matte flap faces", "brushed steel frame", "condensed caps"],
+      "viewport": "A steel-framed board fills the screen. A header names the target. Ranked rows run down it, each SMILES set in fixed flap cells, affinity and toxicity in their own columns, and status at the right. Toxic rows restyle to dim red without breaking the grid.",
+      "case": "Holds product clarity: ranked live rows with state colours is exactly the ranking table, and it reads across a projector. Loses audience identification: a concourse board is not native to pharmaceutical research.",
+      "risk": "The mode rules warn that an instrument world becomes a costume on a working screen. It must lend type, palette, density and the cascade only.",
+      "html": ".impeccable/sketches/splitflap.html",
+      "htmlFrame": "1440x900"
+    },
+    {
+      "id": "challenger-coupon",
+      "kind": "challenger",
+      "catalogId": "vernacular-ephemera-jet-age-ticket-wallet",
+      "label": "Jet-Age Ticket Wallet",
+      "verdict": "competitive",
+      "lineage": "carbon-copy airline coupon books",
+      "thesis": "The pipeline is a coupon book: each stage tears off in sequence, and nothing is ever deleted, only stamped USED or VOID.",
+      "palette": ["#11224A", "#C01823", "#6B2FA0", "#FFFFFF", "#E8E6DF"],
+      "materials": ["coupon stock", "carbon numerals", "perforated rules"],
+      "viewport": "A coupon strip across the top carries the four pipeline stages, spent ones stamped USED and the live one tinted. Below, the ranked manifest lists candidates with carbon-purple indices and VOID stamps on rejected rows. A perforated stub column on the right holds the selected molecule's figures and ledger block.",
+      "case": "Strongest fit for the audit trail: 'nothing disappears, it cancels' is literally immutability, and the coupon sequence maps onto the pipeline. Weaker for the molecule grid, which is the bulk of the content.",
+      "risk": "Mid-century travel ephemera can read as pastiche on a research tool if the carbon and stamps are laid on thickly.",
+      "html": ".impeccable/sketches/coupon.html",
+      "htmlFrame": "1440x900"
+    },
+    {
+      "id": "challenger-crouwel",
+      "kind": "challenger",
+      "catalogId": "crouwel-grid-specimen",
+      "label": "Crouwel Grid Specimen",
+      "verdict": "competitive",
+      "lineage": "Wim Crouwel's gridded type specimens",
+      "thesis": "The construction grid stays visible as the page's armature, and every number is built on it.",
+      "palette": ["#F4F4F2", "#101010", "#1E46C8", "#C81E1E"],
+      "materials": ["faint blue construction hairlines", "monumental grotesk numerals"],
+      "viewport": "Faint blue gridlines cover the whole screen. A monumental wordmark anchors the top-left with run metadata ranged right. A nav column, then a bordered KPI strip whose final cell is a solid accent plane, then the candidate table. A right column sets the lead figures at display scale.",
+      "case": "Holds product clarity through sheer alignment discipline, and graph paper is genuinely native to an engineering audience. Loses identification: it reads as a type specimen before it reads as a laboratory instrument.",
+      "risk": "Visible gridlines plus display numerals can tip from rigorous into decorative, and the grid competes with real data for attention.",
+      "html": ".impeccable/sketches/crouwel.html",
+      "htmlFrame": "1440x900"
+    },
+    {
+      "id": "challenger-character-goods",
+      "kind": "challenger",
+      "catalogId": "pop-culture-shelf-character-goods-catalog",
+      "label": "Character Goods Catalog",
+      "verdict": "declined",
+      "lineage": "ranked mascot roster pages",
+      "thesis": "Candidates as a ranked roster of cells, each with fixed personal furniture.",
+      "palette": ["#FBE8EF", "#FFFFFF", "#F5A3C7", "#8ED4E8"],
+      "materials": ["pastel grounds", "white keylines", "rounded bubble type"],
+      "viewport": "A pastel ranked grid of candidate cells, each with a name plate and a one-line note.",
+      "case": "Fuses poorly: a pastel mascot roster cannot carry pharmaceutical research to an examining committee, and the softness actively undercuts the audit claim.",
+      "kept": "Identical fixed furniture in every cell, which the assigned direction now adopts.",
+      "risk": "Unserious for the audience, whatever the grid does well."
+    },
+    {
+      "id": "challenger-zoo-map",
+      "kind": "challenger",
+      "catalogId": "aww2-zoo-gardens-guide-map",
+      "label": "Zoo & Gardens Guide Map",
+      "verdict": "declined",
+      "lineage": "folded visitor guide maps",
+      "thesis": "Regions as swelling lobes of flat colour divided by coastline.",
+      "palette": ["#8ED462", "#F5F1E4", "#2C2E2A", "#FF705D", "#F5E211"],
+      "materials": ["flat unmodulated colour", "SVG coastlines", "capsule controls"],
+      "viewport": "One colour lobe dominates, its coast leaving the frame, with capsule controls pinned along the edge.",
+      "case": "Fuses poorly: organic lobes and coastlines fight tabular chemical data, and a guide map is a costume on a research tool.",
+      "kept": "Flat unmodulated colour owning whole regions with no grain and no gradient, which the assigned direction now adopts.",
+      "risk": "Organic geometry destroys the alignment this data needs."
+    }
+  ],
+  "canonCard": {
+    "kind": "canon",
+    "label": "The category standard",
+    "thesis": "The research dashboard everyone ships: left sidebar, stat cards, data table, blue accent.",
+    "palette": ["#F8FAFC", "#FFFFFF", "#0F172A", "#2563EB"],
+    "materials": ["rounded cards", "neutral grid", "status pills"],
+    "viewport": "A white sidebar, a four-up stat row, and a bordered table of ranked candidates with coloured status pills.",
+    "risk": "Indistinguishable from every other ML dashboard by design, and forgettable the moment the viva ends.",
+    "html": ".impeccable/sketches/canon.html",
+    "htmlFrame": "1440x900"
+  },
+  "canon": true,
+  "steer": true,
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "code" }
+}

@@ -79,3 +79,42 @@ app.include_router(audit_router, prefix=API_V1_PREFIX, tags=["Audit"])
 # --- Layer 4: Blockchain ---
 from app.api.routes.blockchain_routes import blockchain_router
 app.include_router(blockchain_router, prefix=API_V1_PREFIX, tags=["Blockchain"])
+
+
+# ---------------------------------------------------------------------------
+# Frontend — serve the built React app (frontend/dist) at /
+# ---------------------------------------------------------------------------
+# Mounted last so every /api/v1 route above wins. Build it with:
+#     cd frontend && npm install && npm run build
+import os
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+_FRONTEND_DIST = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "frontend", "dist",
+)
+
+if os.path.isdir(_FRONTEND_DIST):
+    app.mount(
+        "/assets",
+        StaticFiles(directory=os.path.join(_FRONTEND_DIST, "assets")),
+        name="assets",
+    )
+    app.mount(
+        "/fonts",
+        StaticFiles(directory=os.path.join(_FRONTEND_DIST, "fonts")),
+        name="fonts",
+    )
+
+    @app.get("/", include_in_schema=False)
+    async def serve_index():
+        return FileResponse(os.path.join(_FRONTEND_DIST, "index.html"))
+else:
+    @app.get("/", include_in_schema=False)
+    async def frontend_missing():
+        return {
+            "message": "Frontend not built.",
+            "build": "cd frontend && npm install && npm run build",
+            "api_docs": "/docs",
+        }
